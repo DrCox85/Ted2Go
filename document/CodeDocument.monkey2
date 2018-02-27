@@ -199,6 +199,53 @@ Class CodeDocumentView Extends Ted2CodeTextView
 '					Endif
 '				#Endif
 				
+				Case Key.D
+					
+					Local ok:=ctrl
+					#If __TARGET__="macos"
+					ok=ok And shift
+					#Endif
+					
+					If ok ' duplicate line or selection
+						
+						Local cur:=Cursor,anc:=Anchor
+						If cur=anc ' duplicate whole line
+							
+							Local pos:=PosInLineAtCursor
+							Local line:=Document.FindLine( cur )
+							Local s:=LineTextAtCursor
+							Local ends:=Document.EndOfLine( line )
+							ReplaceText( ends,ends,"~n"+s )
+							pos=pos+StartOfLineAtCursor
+							SelectText( pos,pos )
+							
+						Else ' duplicate selection
+							
+							Local min:=Min( Cursor,Anchor )
+							Local max:=Max( Cursor,Anchor )
+							Local selLen:=max-min
+							Local s:=SelectedText
+							Local atEnd:=(max=Document.EndOfLine( Document.FindLine( max ) ))
+							If atEnd
+								Local minLine:=Document.FindLine( min )
+								Local s0:=Document.GetLine( minLine )
+								Local pos:=min-Document.StartOfLine( minLine )
+								Local indent:=Min( GetIndent( s0 ),pos )
+								Local indentStr:=(indent>0) ? s0.Slice( 0,indent ) Else ""
+								s="~n"+indentStr+s
+								selLen+=indentStr.Length
+							Endif
+							SelectText( max,max )
+							ReplaceText( s )
+							Local pos:=max+Int(atEnd)
+							SelectText( pos,pos+selLen )
+							
+						Endif
+						
+						Return
+						
+					Endif
+					
 				Case Key.Space
 					If ctrl
 						Return
@@ -223,25 +270,32 @@ Class CodeDocumentView Extends Ted2CodeTextView
 						' remove all indent spaces by single press of Backspace
 						If Cursor=Anchor And Prefs.EditorUseSpacesAsTabs
 							
-							Local posInLine:=PosInLineAtCursor
-							Local line:=LineTextAtCursor
+							Local color:=Document.Colors[Cursor]
 							
-							' check for spaces only, tab will be removed by super class
-							If posInLine>0 And line[posInLine-1]=Chars.SPACE
-							
-								Local pos:=GetPosInLineAtCursorCheckingTabSize()
-								Local canRemoveCount:=(pos Mod Prefs.EditorTabSize)
-								If canRemoveCount=0 Then canRemoveCount=Prefs.EditorTabSize
-								Local i:=posInLine-1,counter:=canRemoveCount
+							' skip comments and strings areas
+							If color<>Highlighter.COLOR_COMMENT And color<>Highlighter.COLOR_STRING
 								
-								While counter>0
-									If line[i]<>Chars.SPACE Exit
-									counter-=1
-									i-=1
-								Wend
-								If counter>1 Then counter+=1 ' don't remove space nearest to another char (is it correct?)
-								canRemoveCount-=counter
-								SelectText( Cursor,Cursor-canRemoveCount )
+								Local posInLine:=PosInLineAtCursor
+								Local line:=LineTextAtCursor
+								
+								' check for spaces only, tab will be removed by super class
+								If posInLine>0 And line[posInLine-1]=Chars.SPACE
+								
+									Local pos:=GetPosInLineAtCursorCheckingTabSize()
+									Local canRemoveCount:=(pos Mod Prefs.EditorTabSize)
+									If canRemoveCount=0 Then canRemoveCount=Prefs.EditorTabSize
+									Local i:=posInLine-1,counter:=canRemoveCount
+									
+									While counter>0
+										If line[i]<>Chars.SPACE Exit
+										counter-=1
+										i-=1
+									Wend
+									If counter>1 Then counter+=1 ' don't remove space nearest to another char (is it correct?)
+									canRemoveCount-=counter
+									SelectText( Cursor,Cursor-canRemoveCount )
+									
+								Endif
 								
 							Endif
 							
@@ -825,7 +879,7 @@ Class CodeDocument Extends Ted2Document
 		
 		' Editor
 		_codeView=New CodeDocumentView( Self )
-		_codeView.LineChanged += OnLineChanged
+		_codeView.LineNumChanged += OnLineChanged
 		
 		_doc=_codeView.Document
 		
@@ -885,14 +939,16 @@ Class CodeDocument Extends Ted2Document
 			' store cursor position
 			Local line:=_codeView.LineNumAtCursor
 			Local posInLine:=_codeView.PosInLineAtCursor
+			Local scroll:=_codeView.Scroll
 			' get fixed text
-			Local text:=IndentationHelper.FixIndentation( _codeView.Text )
+			Local text:=IndentationHelper.FixIndentation( _codeView.Document )
 			' replacing allow us to use undo
 			_codeView.SelectAll()
 			_codeView.ReplaceText( text )
 			' restore cursor
 			Local cursor:=_codeView.Document.StartOfLine( line )+posInLine
 			_codeView.SelectText( cursor,cursor )
+			_codeView.Scroll=scroll
 			' 
 			_fixIndentView.Visible=False
 		End
@@ -964,7 +1020,6 @@ Class CodeDocument Extends Ted2Document
 		_browserView.AddView( bar,"top" )
 		
 		
-		
 		_treeView=New CodeTreeView
 		_browserView.ContentView=_treeView
 		
@@ -981,6 +1036,37 @@ Class CodeDocument Extends Ted2Document
 		End
 		
 		Return _browserView
+	End
+	
+	Method AnalyzeIndentation()
+		
+		Local text:=_codeView.Text
+		If Not text Return
+		
+		Local useSpaces:=Prefs.EditorUseSpacesAsTabs
+		Local hint:=""
+		Local type:=IndentationHelper.AnalyzeIndentation( text )
+		
+		Select type
+			Case IndentationHelper.Type.Spaces
+				If Not useSpaces Then hint="There is a spaced indentation found."
+				
+			Case IndentationHelper.Type.Tabs
+				If useSpaces Then hint="There is a tabbed indentation found."
+				
+			Case IndentationHelper.Type.Mixed
+				hint="There is a mixed indentation found."
+				
+		End
+		
+		If hint
+			Local quest:=Prefs.EditorUseSpacesAsTabs ? "Replace with spaces?" Else "Replace with tabs?"
+			_fixIndentHint.Text=hint+" "+quest
+			_fixIndentView.Visible=True
+		Else
+			_fixIndentView.Visible=False
+		Endif
+		
 	End
 	
 	' not multipurpose method, need to move into plugin
@@ -1194,16 +1280,9 @@ Class CodeDocument Extends Ted2Document
 		
 	End
 	
-	Method ShowFixIndentationView( hint:String )
-		
-		Local quest:=Prefs.EditorUseSpacesAsTabs ? "Replace with spaces?" Else "Replace with tabs?"
-		_fixIndentHint.Text=hint+" "+quest
-		_fixIndentView.Visible=True
-	End
-	
 	Method ShowAutocomplete( ident:String="",byCtrlSpace:Bool=False )
 		
-		If ident = "" Then ident=_codeView.IdentBeforeCursor()
+		If Not ident Then ident=_codeView.IdentBeforeCursor()
 		
 		Print "ident: "+ident
 		
@@ -1633,8 +1712,8 @@ Class CodeDocument Extends Ted2Document
 						j-=1
 					Wend
 					j+=1
-					Local pair:=GetIndentBeforePos_Mx2( line,j,True )
-					Local ident:=pair.Item1
+					Local info:=GetIndentBeforePos_Mx2( line,j,True )
+					Local ident:=info.ident
 					'Print "ident: "+ident'+", paramIndex: "+paramIndex+", isNew: "+isNew
 					If ident
 						part=New ParamsPart
@@ -1644,7 +1723,7 @@ Class CodeDocument Extends Ted2Document
 						part.ranges.Add( New Vec2i( i,0 ) )
 						
 						' check for 'New' keyword
-						j=pair.Item2-1 'where ident starts
+						j=info.pos-1 'where ident starts
 						While j>=0 And line[j]<=32
 							j-=1
 						Wend

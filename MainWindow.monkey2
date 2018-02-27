@@ -11,8 +11,6 @@ Namespace ted2go
 
 #Import "assets/fonts/@/fonts"
 
-#Import "assets/themes/irc/@/themes/irc"
-
 
 Global MainWindow:MainWindowInstance
 
@@ -68,29 +66,20 @@ Class MainWindowInstance Extends Window
 			
 			OnFileDropped( path )
 		End
-
+		
 		_docsManager.DocumentAdded+=Lambda( doc:Ted2Document )
 			AddRecentFile( doc.Path )
-			AnalyzeIndentation( doc )
+			
+			Local codeDoc:=Cast<CodeDocument>( doc )
+			If codeDoc Then codeDoc.AnalyzeIndentation()
+			
 			SaveState()
 		End
-
+		
 		_docsManager.DocumentRemoved+=Lambda( doc:Ted2Document )
 			If IsTmpPath( doc.Path ) DeleteFile( doc.Path )
 			SaveState()
 		End
-		
-		'IRC tab
-		
-		_ircView=New IRCView
-		_ircView.introScreen.Text="Hang out with other Monkey 2 users"
-		_ircView.introScreen.OnNickChange+=Lambda( nick:String )
-			Prefs.IrcNickname=nick
-		End
-		
-		SetupChatTab()
-		
-		If Prefs.IrcConnect Then _ircView.introScreen.Connect()
 		
 		'Build tab
 		
@@ -450,7 +439,7 @@ Class MainWindowInstance Extends Window
 		_buildConsoleView=New DockingView
 		_buildConsoleView.ContentView=_buildConsole
 		
-		_statusBar=New StatusBarView
+		_statusBar=New StatusBarView( "Stop process ("+_forceStop.HotKeyText+")" )
 		
 		_contentView=New DockingView
 		_contentView.AddView( _menuBar,"top" )
@@ -486,8 +475,6 @@ Class MainWindowInstance Extends Window
 		Next
 		
 		PrefsChanged()
-		
-		SetupChatTab()
 		
 		_projectView.SingleClickExpanding=Prefs.MainProjectSingleClickExpanding
 	End
@@ -636,7 +623,6 @@ Class MainWindowInstance Extends Window
 		SaveState()
 		_enableSaving=False
 		OnForceStop() ' kill build process if started
-		If _ircView Then _ircView.Quit("Closing Ted2Go")
 		
 		' waiting for started processes if any
 		ParsersManager.DisableAll()
@@ -1314,9 +1300,8 @@ Class MainWindowInstance Extends Window
 			SizeChanged()
 		Endif
 		
-		UpdateIrcIcon()
-		
 		Rendered( canvas )
+		
 	End
 	
 	Method OnInit()
@@ -1377,93 +1362,6 @@ Class MainWindowInstance Extends Window
 		_resized=True
 	End
 	
-	Method SetupChatTab()
-		
-		If Not _ircView Return
-		
-		_ircView.ircHandler.OnMessage+=Self.OnChatMessage
-		
-		Local intro:=_ircView.introScreen
-		
-		If intro.IsConnected Return
-		
-		Local nick:=Prefs.IrcNickname
-		Local server:=Prefs.IrcServer
-		Local port:=Prefs.IrcPort
-		Local rooms:=Prefs.IrcRooms
-		intro.AddOnlyServer( nick,server,server,port,rooms )
-		
-	End
-	
-	Method OnChatTabActiveChanged()
-		
-		Local tab:=_tabsWrap.tabs["Chat"]
-		
-		If Not tab.IsActive Return
-		
-		tab.Icon=Null
-		
-		_ircNotifyIcon=0
-		
-		HideHint()
-		
-	End
-	
-	Method OnChatMessage( message:IRCMessage, container:IRCMessageContainer, server:IRCServer )
-		
-		If message.type<>"PRIVMSG" Or _tabsWrap.tabs["Chat"].IsActive Return
-		
-		'Show notice icon
-		If message.text.Contains(server.nickname) Then
-			
-			If _ircNotifyIcon<=1 Then
-				
-				_ircNotifyIcon=2
-				
-				Local mentionStr:String
-				mentionStr=server.nickname+" was mentioned by "
-				mentionStr+=message.fromUser+" in "
-				mentionStr+=container.name
-				
-				Local dock:=_tabsWrap.tabs["Chat"].CurrentHolder '_tabsWrap.docks["bottom"]
-				ShowHint( mentionStr, New Vec2i( 0, -GetStyle( "Hint" ).Font.Height*4 ), dock, 20000 )
-				
-			Endif
-			
-		Else
-			
-			If _ircNotifyIcon<=0 Then _ircNotifyIcon=1
-			
-		Endif
-		
-	End
-	
-	Method UpdateIrcIcon()
-		
-		If _ircNotifyIcon<=0 Then Return
-		
-		Local time:Int=Int(Millisecs()*0.0025)
-		
-		If time=_ircIconBlink Then Return
-		_ircIconBlink=time
-		
-		Local tab:=_tabsWrap.tabs["Chat"]
-		
-		If time Mod 2 Then
-			Select _ircNotifyIcon
-				
-				Case 1
-					tab.Icon=App.Theme.OpenImage( "irc/notice.png" )
-					
-				Case 2
-					tab.Icon=App.Theme.OpenImage( "irc/important.png" )
-			End
-		Else
-			tab.Icon=App.Theme.OpenImage( "irc/blink.png" )
-		Endif
-		
-	End
-	
 	Method InitTabs()
 		
 		If Not _tabsWrap.tabs.Empty Return
@@ -1475,9 +1373,7 @@ Class MainWindowInstance Extends Window
 		_tabsWrap.AddTab( "Output",_outputConsoleView )
 		_tabsWrap.AddTab( "Docs",_docsConsole )
 		_tabsWrap.AddTab( "Find",_findConsole )
-		_tabsWrap.AddTab( "Chat",_ircView )
 		
-		_tabsWrap.tabs["Chat"].ActiveChanged+=OnChatTabActiveChanged
 	End
 	
 	Method ArrangeElements()
@@ -1519,7 +1415,7 @@ Class MainWindowInstance Extends Window
 		places["left"]=New StringStack( s.Split( "," ) )
 		s="Project,Debug"
 		places["right"]=New StringStack( s.Split( "," ) )
-		s="Build,Output,Docs,Find,Chat"
+		s="Build,Output,Docs,Find"
 		places["bottom"]=New StringStack( s.Split( "," ) )
 		
 		Global actives:=New StringMap<String>
@@ -1785,7 +1681,6 @@ Class MainWindowInstance Extends Window
 	Field _viewActions:ViewActions
 	Field _tabActions:TabActions
 	
-	Field _ircView:IRCView
 	Field _buildConsole:ConsoleExt
 	Field _buildConsoleView:DockingView
 	Field _outputConsole:ConsoleExt
@@ -1800,13 +1695,9 @@ Class MainWindowInstance Extends Window
 	Field _helpTree:HelpTreeView
 	Field _helpSwitcher:ToolButtonExt
 	
-	'Field _ircTabView:TabView
 	Field _docsTabView:TabViewExt
 	Field _consolesTabView2:TabView
 	Field _browsersTabView2:TabView
-	
-	Field _ircNotifyIcon:Int
-	Field _ircIconBlink:Int
 	
 	Field _forceStop:Action
 
@@ -1867,35 +1758,6 @@ Class MainWindowInstance Extends Window
 		If _recentFiles.Length>20 Then _recentFiles.Resize( 20 )
 		
 		UpdateRecentFilesMenu()
-	End
-	
-	Method AnalyzeIndentation( doc:Ted2Document )
-		
-		Local codeDoc:=Cast<CodeDocument>( doc )
-		If Not codeDoc Return
-		Local text:=codeDoc.TextView?.Text
-		If Not text Return
-		
-		Local useSpaces:=Prefs.EditorUseSpacesAsTabs
-		Local hint:=""
-		Local type:=IndentationHelper.AnalyzeIndentation( text )
-		Print Int(type)
-		Select type
-			Case IndentationHelper.Type.Spaces
-				If Not useSpaces Then hint="There is a spaced indentation found."
-				
-			Case IndentationHelper.Type.Tabs
-				If useSpaces Then hint="There is a tabbed indentation found."
-				
-			Case IndentationHelper.Type.Mixed
-				hint="There is a mixed indentation found."
-				
-		End
-		
-		If hint
-			codeDoc.ShowFixIndentationView( hint )
-		Endif
-		
 	End
 	
 	Method AddRecentProject( path:String )

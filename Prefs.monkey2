@@ -22,12 +22,6 @@ Class PrefsInstance
 	Field MainProjectSingleClickExpanding:=False
 	Field MainPlaceDocsAtBegin:=False
 	'
-	Field IrcNickname:String
-	Field IrcServer:="irc.freenode.net"
-	Field IrcPort:=6667
-	Field IrcRooms:="#monkey2" '#mojox#mojo2d
-	Field IrcConnect:Bool=False
-	'
 	Field EditorToolBarVisible:=False
 	Field EditorGutterVisible:=True
 	Field EditorShowWhiteSpaces:=False
@@ -41,6 +35,7 @@ Class PrefsInstance
 	Field EditorShowParamsHint:=True
 	Field EditorUseSpacesAsTabs:=False
 	Field EditorTabSize:=4
+	Field EditorRemoveLinesTrailing:=True
 	'
 	Field SourceSortByType:=True
 	Field SourceShowInherited:=False
@@ -59,17 +54,6 @@ Class PrefsInstance
 	End
 	
 	Method LoadState( json:JsonObject )
-		
-		If json.Contains( "irc" )
-			
-			Local j2:=json["irc"].ToObject()
-			IrcNickname=Json_GetString( j2,"nickname",IrcNickname )
-			IrcServer=Json_GetString( j2,"server",IrcServer )
-			IrcPort=Json_GetInt( j2,"port",IrcPort )
-			IrcRooms=Json_GetString( j2,"rooms",IrcRooms )
-			IrcConnect=Json_GetBool( j2,"connect",IrcConnect )
-			
-		Endif
 		
 		If json.Contains( "main" )
 			
@@ -112,6 +96,7 @@ Class PrefsInstance
 			EditorShowParamsHint=Json_GetBool( j2,"showParamsHint",EditorShowParamsHint )
 			EditorUseSpacesAsTabs=Json_GetBool( j2,"useSpacesAsTabs",EditorUseSpacesAsTabs )
 			EditorTabSize=Json_GetInt( j2,"tabSize",EditorTabSize )
+			EditorRemoveLinesTrailing=Json_GetBool( j2,"removeLinesTrailing",EditorRemoveLinesTrailing )
 			
 		Endif
 		
@@ -140,14 +125,6 @@ Class PrefsInstance
 		j["placeDocsAtBegin"]=New JsonBool( MainPlaceDocsAtBegin )
 		
 		j=New JsonObject
-		json["irc"]=j
-		j["nickname"]=New JsonString( IrcNickname )
-		j["server"]=New JsonString( IrcServer )
-		j["port"]=New JsonNumber( IrcPort )
-		j["rooms"]=New JsonString( IrcRooms )
-		j["connect"]=New JsonBool( IrcConnect )
-		
-		j=New JsonObject
 		json["completion"]=j
 		j["enabled"]=New JsonBool( AcEnabled )
 		j["keywordsOnly"]=New JsonBool( AcKeywordsOnly )
@@ -174,6 +151,7 @@ Class PrefsInstance
 		j["showParamsHint"]=New JsonBool( EditorShowParamsHint )
 		j["useSpacesAsTabs"]=New JsonBool( EditorUseSpacesAsTabs )
 		j["tabSize"]=New JsonNumber( EditorTabSize )
+		j["removeLinesTrailing"]=New JsonBool( EditorRemoveLinesTrailing )
 		
 		j=New JsonObject
 		json["source"]=j
