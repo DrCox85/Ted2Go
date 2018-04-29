@@ -1571,7 +1571,7 @@ Class MainWindowInstance Extends Window
 		
 	Method SaveUndockTabsState( jobj:JsonObject )
 		
-		If( UndockWindow._undockWindows.Length )	
+		If( UndockWindow._undockWindows)	
 			Local jj:=New JsonObject
 			jobj["undockTabs"]=jj
 			For Local i:=Eachin UndockWindow._undockWindows
