@@ -30,16 +30,16 @@ Class MainWindowInstance Extends Window
 		
 		_tabsWrap=New DraggableTabs
 		
-		_docsTabView=New TabViewExt( TabViewFlags.DraggableTabs|TabViewFlags.ClosableTabs )
+		_docsTabView=Di.Resolve<DocsTabView>()
 		
 		_recentFilesMenu=New MenuExt( "Recent files" )
 		_recentProjectsMenu=New MenuExt( "Recent projects" )
 		_closeProjectMenu=New MenuExt( "Close project" )
 		
-		_docBrowser=New DockingView
+		_docBrowser=Di.Resolve<DocBrowserView>()
 		
-		_docsManager=New DocumentManager( _docsTabView,_docBrowser )
-
+		_docsManager=Di.Resolve<DocumentManager>()
+		
 		_docsManager.CurrentDocumentChanged+=Lambda()
 			
 			UpdateKeyView()
@@ -68,27 +68,32 @@ Class MainWindowInstance Extends Window
 		End
 		
 		_docsManager.DocumentAdded+=Lambda( doc:Ted2Document )
+			
 			AddRecentFile( doc.Path )
 			
 			Local codeDoc:=Cast<CodeDocument>( doc )
-			If codeDoc Then codeDoc.AnalyzeIndentation()
+			If codeDoc
+				codeDoc.AnalyzeIndentation()
+				If _projectView.ActiveProject?.MainFilePath=codeDoc.Path
+					_docsManager.SetAsMainFile( codeDoc.Path,True )
+				Endif
+			Endif
 			
 			SaveState()
 		End
 		
 		_docsManager.DocumentRemoved+=Lambda( doc:Ted2Document )
+			
 			If IsTmpPath( doc.Path ) DeleteFile( doc.Path )
 			SaveState()
 		End
 		
 		_recentViewedFiles=New RecentFiles( _docsManager )
 		
-		_codeParsing=New CodeParsing( _docsManager )
-		
 		
 		'Build tab
 		
-		_buildConsole=New ConsoleExt
+		_buildConsole=Di.Resolve<BuildConsole>()
 		' jump to errors etc.
 		_buildConsole.RequestJumpToFile+=Lambda( path:String,line:Int )
 			
@@ -99,7 +104,7 @@ Class MainWindowInstance Extends Window
 		
 		'Output tab
 		
-		_outputConsole=New ConsoleExt
+		_outputConsole=Di.Resolve<OutputConsole>()
 		Local bar:=New ToolBarExt
 		bar.MaxSize=New Vec2i( 300,30 )
 		
@@ -154,7 +159,7 @@ Class MainWindowInstance Extends Window
 		
 		'Help tab
 		
-		_helpView=New HtmlViewExt
+		_helpView=Di.Resolve<HelpView>()
 		_docsConsole=New DockingView
 		bar=New ToolBarExt
 		bar.MaxSize=New Vec2i( 300,30 )
@@ -188,7 +193,7 @@ Class MainWindowInstance Extends Window
 			label.Text=url
 		End
 		
-		_helpTree=New HelpTreeView( _helpView )
+		_helpTree=Di.Resolve<HelpTreeView>()
 		_docsConsole.AddView( _helpTree,"right",200,True )
 		
 		_docsConsole.AddView( bar,"top" )
@@ -209,9 +214,9 @@ Class MainWindowInstance Extends Window
 		_helpView.Navigate( AboutPagePath )
 		
 		
-		_debugView=New DebugView( _docsManager,_outputConsole )
+		_debugView=Di.Resolve<DebugView>()
 		
-		_buildActions=New BuildActions( _docsManager,_buildConsole,_debugView )
+		_buildActions=Di.Resolve<BuildActions>()
 		_buildActions.ErrorsOccured+=Lambda( errors:BuildError[] )
 			
 			ShowBuildConsole( True )
@@ -220,10 +225,10 @@ Class MainWindowInstance Extends Window
 		
 		' ProjectView
 		'
-		_projectView=New ProjectView( _docsManager,_buildActions )
+		_projectView=Di.Resolve<ProjectView>()
 		' project opened
-		_projectView.ProjectOpened+=Lambda( dir:String )
-			AddRecentProject( dir )
+		_projectView.ProjectOpened+=Lambda( path:String )
+			AddRecentProject( path )
 			SaveState()
 		End
 		' project closed
@@ -231,6 +236,30 @@ Class MainWindowInstance Extends Window
 		' find in folder
 		_projectView.RequestedFindInFolder+=Lambda( folder:String )
 			_findActions.FindInFiles( folder )
+		End
+		
+		_codeParsing=Di.Resolve<CodeParsing>()
+		
+		_projectView.MainFileChanged+=Lambda( path:String,prevPath:String )
+			
+			_docsManager.SetAsMainFile( prevPath,False )
+			_docsManager.SetAsMainFile( path,True )
+		End
+		
+		_projectView.FileRenamed+=Lambda( path:String,prevPath:String )
+			
+			Local doc:=_docsManager.FindDocument( prevPath )
+			If doc Then _docsManager.RenameDocument( doc,path )
+		End
+		
+		_projectView.FolderRenamed+=Lambda( path:String,prevPath:String )
+			
+			Local docs:=_docsManager.OpenDocuments
+			For Local doc:=Eachin docs
+				If doc.Path.StartsWith( prevPath )
+					_docsManager.RenameDocument( doc,doc.Path.Replace( prevPath,path ) )
+				Endif
+			Next
 		End
 		
 		_fileActions=New FileActions( _docsManager )
@@ -250,7 +279,7 @@ Class MainWindowInstance Extends Window
 		_tabMenu.AddAction( _fileActions.saveAs )
 		_tabMenu.AddSeparator()
 		_tabMenu.AddAction( _buildActions.lockBuildFile )
-		
+		_tabMenu.AddAction( _projectView.setMainFile )
 		_tabMenu.AddSeparator()
 		_tabMenu.AddAction( "Open on Desktop" ).Triggered=Lambda()
 			
@@ -312,7 +341,8 @@ Class MainWindowInstance Extends Window
 		_fileMenu.AddAction( _fileActions.saveAs )
 		_fileMenu.AddAction( _fileActions.saveAll )
 		_fileMenu.AddSeparator()
-		_fileMenu.AddAction( _projectView.openProject )
+		_fileMenu.AddAction( _projectView.openProjectFolder )
+		_fileMenu.AddAction( _projectView.openProjectFile )
 		_fileMenu.AddSubMenu( _recentProjectsMenu )
 		_fileMenu.AddSubMenu( _closeProjectMenu )
 		_fileMenu.AddSeparator()
@@ -537,6 +567,18 @@ Class MainWindowInstance Extends Window
 		'SDL_RaiseWindow( SDLWindow )
 	End
 	
+	Method OnFileDropped( path:String )
+	
+		New Fiber( Lambda()
+	
+			Local ok:=_projectView.OnFileDropped( path )
+			If Not ok And FileExists( path ) 'file
+				_docsManager.OpenDocument( path,True )
+			Endif
+	
+		End )
+	End
+	
 	Method HideFindPanel:Bool()
 		
 		If Not _findReplaceView.Visible Return False
@@ -636,6 +678,11 @@ Class MainWindowInstance Extends Window
 	Property DocsManager:DocumentManager()
 	
 		Return _docsManager
+	End
+	
+	Property ProjView:ProjectView()
+	
+		Return _projectView
 	End
 	
 	Property LockedDocument:CodeDocument()
@@ -952,7 +999,7 @@ Class MainWindowInstance Extends Window
 		_toolBar.AddSeparator()
 		_toolBar.AddIconicButton( ThemeImages.Get( "toolbar/new_file.png" ),_fileActions.new_.Triggered,newTitle )
 		_toolBar.AddIconicButton( ThemeImages.Get( "toolbar/open_file.png" ),_fileActions.open.Triggered,openTitle )
-		_toolBar.AddIconicButton( ThemeImages.Get( "toolbar/open_project.png" ),_projectView.openProject.Triggered,"Open project..." )
+		_toolBar.AddIconicButton( ThemeImages.Get( "toolbar/open_project.png" ),_projectView.openProjectFolder.Triggered,"Open project..." )
 		Local icons:=New Image[]( ThemeImages.Get( "toolbar/save.png" ),ThemeImages.Get( "toolbar/save_dirty.png" ) )
 		_saveItem=_toolBar.AddIconicButton( icons,_fileActions.save.Triggered,saveTitle )
 		icons=New Image[]( ThemeImages.Get( "toolbar/save_all.png" ),ThemeImages.Get( "toolbar/save_all_dirty.png" ) )
@@ -1063,23 +1110,23 @@ Class MainWindowInstance Extends Window
 			Return
 		Endif
 		
-		Local doc:=Cast<CodeDocumentView>( _docsManager.CurrentTextView )
-		If Not doc Return
+		Local view:=Cast<CodeDocumentView>( _docsManager.CurrentTextView )
+		If Not view Return
 		
 		' don't check with parser, just find in docs tree
 		If searchMode
-			Local ident:=doc.WordAtCursor
+			Local ident:=view.WordAtCursor
 			_helpTree.QuickHelp( ident )
 			ShowDocsView( True )
 			Return
 		Endif
 		
-		Local ident:=doc.FullIdentAtCursor
+		Local ident:=view.IdentBeforeCursor()
 		
 		If Not ident Return
 		
-		Local parser:=ParsersManager.Get( doc.FileType )
-		Local item:=parser.ItemAtScope( ident,doc.FilePath,GetCursorPos( doc ) )
+		Local parser:=ParsersManager.Get( view.FileType )
+		Local item:=parser.ItemAtScope( ident,view.FilePath,GetCursorPos( view ) )
 		
 		If item
 			
@@ -1129,7 +1176,7 @@ Class MainWindowInstance Extends Window
 			
 			__prevPath=path
 			
-		ElseIf KeywordsManager.Get( doc.FileType ).Contains( ident )
+		Elseif KeywordsManager.Get( view.FileType ).Contains( ident )
 			
 			ShowStatusBarText( "(keyword) "+ident )
 		
@@ -1235,7 +1282,7 @@ Class MainWindowInstance Extends Window
 	
 	Method GotoDeclaration()
 	
-		Local doc:=Cast<CodeDocument>( _docsManager.CurrentDocument )
+		Local doc:=_docsManager.CurrentCodeDocument
 		If Not doc Return
 		
 		doc.GotoDeclaration()
@@ -1364,18 +1411,6 @@ Class MainWindowInstance Extends Window
 		_docsTabView.EnsureVisibleCurrentTab()
 	End
 	
-	Method OnFileDropped( path:String )
-		
-		New Fiber( Lambda()
-			
-			Local ok:=_projectView.OnFileDropped( path )
-			If Not ok And FileExists( path ) 'file
-				_docsManager.OpenDocument( path,True )
-			Endif
-			
-		End )
-	End
-	
 	Method OnAppClose()
 		
 		_fileActions.quit.Trigger()
@@ -1396,7 +1431,7 @@ Class MainWindowInstance Extends Window
 	
 	Method OnProjectClosed( dir:String )
 		
-		UpdateCloseProjectMenu( dir )
+		UpdateCloseProjectMenu()
 		
 		Local list:=New Stack<Ted2Document>
 		' close all related files
@@ -1629,11 +1664,11 @@ Class MainWindowInstance Extends Window
 		
 		App.Idle+=Lambda() 'delay execution
 			
-			_docsManager.LoadState( jobj )
 			_buildActions.LoadState( jobj )
 			_projectView.LoadState( jobj )
-		 
-			If Not _projectView.OpenProjects _projectView.OpenProject( CurrentDir() )
+			_docsManager.LoadState( jobj )
+		 	
+			If Not _projectView.HasOpenedProjects Then _projectView.OpenProject( CurrentDir() )
 			
 			UpdateRecentFilesMenu()
 			UpdateRecentProjectsMenu()
@@ -1656,7 +1691,7 @@ Class MainWindowInstance Extends Window
 	Protected
 	
 	Method OnKeyEvent( event:KeyEvent ) Override
-	
+		
 		Select event.Type
 		Case EventType.KeyDown
 			
@@ -1700,7 +1735,7 @@ Class MainWindowInstance Extends Window
 	End
 	
 	Method OnWindowEvent( event:WindowEvent ) Override
-
+		
 		Select event.Type
 			
 			Case EventType.WindowClose
@@ -1825,7 +1860,7 @@ Class MainWindowInstance Extends Window
 		If _recentProjects.Length>10 Then _recentProjects.Resize( 10 )
 		
 		UpdateRecentProjectsMenu()
-		UpdateCloseProjectMenu( path )
+		UpdateCloseProjectMenu()
 	End
 	
 	Method UpdateRecentFilesMenu()
@@ -1848,34 +1883,31 @@ Class MainWindowInstance Extends Window
 	End
 	
 	Method UpdateRecentProjectsMenu()
-	
+		
 		_recentProjectsMenu.Clear()
-	
+		
 		Local recents:=New StringStack
-	
+		
 		For Local path:=Eachin _recentProjects
-			If GetFileType( path )<>FileType.Directory Continue
-	
 			_recentProjectsMenu.AddAction( path ).Triggered=Lambda()
 				_projectView.OpenProject( path )
 			End
-	
 			recents.Add( path )
 		Next
-	
+		
 		_recentProjects=recents
 	End
 	
-	Method UpdateCloseProjectMenu( dir:String="" )
-	
+	Method UpdateCloseProjectMenu()
+		
 		_closeProjectMenu.Clear()
 		
-		For Local dir:=Eachin _projectView.OpenProjects
-		
-			_closeProjectMenu.AddAction( dir ).Triggered=Lambda()
+		For Local proj:=Eachin _projectView.OpenProjects
 			
-				_projectView.CloseProject( dir )
-				
+			Local path:=proj.Path
+			_closeProjectMenu.AddAction( path ).Triggered=Lambda()
+			
+				_projectView.CloseProject( path )
 				UpdateCloseProjectMenu()
 			End
 			

@@ -47,7 +47,7 @@ Class Monkey2Parser Extends CodeParserPlugin
 			ParseModules()
 			
 			time=Millisecs()-time
-			Print "parse modules: "+(time/1000)+" sec"
+			Print "completed parse modules: "+(time/1000)+" sec"
 			
 			OnDoneParseModules( time )
 		End )
@@ -102,6 +102,9 @@ Class Monkey2Parser Extends CodeParserPlugin
 		If geninfo And _enabled
 			Local parsedPath:String
 			Local cmd:=GetParseCommand( filePath,Varptr parsedPath )
+			
+			If Not cmd Return "#"
+			
 			Local proc:=New ProcessReader( filePath )
 			Local str:=proc.Run( cmd )
 			
@@ -439,6 +442,7 @@ Class Monkey2Parser Extends CodeParserPlugin
 	Function GetParseCommand:String( filePathToParse:String,realParsedPath:String Ptr=Null )
 		
 		Local path:String
+		' is it a module file?
 		Local modsDir:=Prefs.MonkeyRootPath+"modules/"
 		If filePathToParse.StartsWith( modsDir ) And filePathToParse.Find( "/tests/")=-1
 			Local i1:=modsDir.Length
@@ -450,12 +454,22 @@ Class Monkey2Parser Extends CodeParserPlugin
 				path=filePathToParse
 			Endif
 		Else
-			path=MainWindow.LockedDocument?.Path ?Else filePathToParse
+			Local mainFile:=PathsProvider.GetActiveMainFilePath()
+			If mainFile
+				If GetFileType( mainFile )<>FileType.File
+					Alert( "File doesn't exists!~n"+mainFile,"Invalid main file" )
+				Endif
+				' is it a standalone file?
+				Local proj:=ProjectView.FindProject( filePathToParse )?.Folder
+				path = mainFile.StartsWith( proj ) ? mainFile Else filePathToParse
+			Else
+				path=filePathToParse
+			Endif
 		Endif
-		
+		Print "path: "+path
 		realParsedPath[0]=path
 		
-		Return "~q"+MainWindow.Mx2ccPath+"~q geninfo ~q"+path+"~q"
+		Return path ? "~q"+MainWindow.Mx2ccPath+"~q geninfo ~q"+path+"~q" Else ""
 	End
 	
 	Function GetGeninfoPath:String( filePath:String )
@@ -474,6 +488,10 @@ Class Monkey2Parser Extends CodeParserPlugin
 	
 	
 	Private
+	
+	Const LOCAL_RULE_NONE:=0
+	Const LOCAL_RULE_SELF_SCOPE:=1
+	Const LOCAL_RULE_PARENT_SCOPE:=2
 	
 	Global _instance:=New Monkey2Parser
 	Field _filesTime:=New StringMap<Long>
@@ -553,7 +571,7 @@ Class Monkey2Parser Extends CodeParserPlugin
 							Continue
 						Endif
 						' additional checking for the first ident
-						If IsLocalMember( i ) And Not CheckLineLocation( i,cursor )
+						If IsLocalMember( i ) And Not CheckLineLocation( i,cursor,LOCAL_RULE_PARENT_SCOPE )
 							'Print "cont3: "+i.Ident
 							Continue
 						Endif
@@ -922,6 +940,7 @@ Class Monkey2Parser Extends CodeParserPlugin
 		'DebugStop()
 		
 		semtype=StripNamespace( semtype )
+		semtype=semtype.Replace( "monkey.types.","" )
 		
 		Local type:=New CodeType
 		
@@ -1182,7 +1201,7 @@ Class Monkey2Parser Extends CodeParserPlugin
 		
 		Local result:CodeItem=Null
 		For Local i:=Eachin items
-			If CheckLineLocation( i,cursor,True )
+			If CheckLineLocation( i,cursor,LOCAL_RULE_SELF_SCOPE )
 				result=i
 				If Not IsLocalMember( i )
 					items=result.Children
@@ -1348,16 +1367,19 @@ Class Monkey2Parser Extends CodeParserPlugin
 		
 	End
 	
-	Method CheckLineLocation:Bool( item:CodeItem,cursor:Vec2i,useSpecialLocalRule:Bool=False )
+	Method CheckLineLocation:Bool( item:CodeItem,cursor:Vec2i,localRule:Int=LOCAL_RULE_NONE )
 		
 		Local srcpos:=item.ScopeStartPos
 		Local endpos:=item.ScopeEndPos
 		
-		If useSpecialLocalRule And IsLocalMember( item )
-			cursor.x-=1 ' hacking
-			Local retval:=cursor.x=srcpos.x And cursor.y>=srcpos.y
-			'Print "rule: "+srcpos+", "+cursor+", "+retval
-			Return retval
+		If localRule<>LOCAL_RULE_NONE And IsLocalMember( item )
+			'cursor.x-=1 ' hacking
+			If localRule=LOCAL_RULE_SELF_SCOPE
+				Return cursor.x=srcpos.x And cursor.y>=srcpos.y
+			Elseif localRule=LOCAL_RULE_PARENT_SCOPE
+				Return (cursor.x=srcpos.x And cursor.y>=srcpos.y) Or 
+						(cursor.x>srcpos.x And cursor.x<endpos.x)
+			Endif
 		Else
 			endpos.x+=1
 			If cursor.x>srcpos.x And cursor.x<endpos.x
