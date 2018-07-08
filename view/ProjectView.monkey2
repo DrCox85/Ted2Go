@@ -134,10 +134,14 @@ Class ProjectView Extends DockingView
 		Return _activeProject?.Name
 	End
 	
-	Function CheckMainFilePath( proj:Monkey2Project )
+	Function CheckMainFilePath( proj:Monkey2Project,showAlert:Bool )
 		
 		If Not proj.MainFilePath
-			Alert( "Main file of ~q"+proj.Name+"~q project is not specified.~n~nRight click on file in Project tree~nand choose 'Set as main file'.","Build error" )
+			If showAlert
+				Alert( "Main file of ~q"+proj.Name+"~q project is not specified.~n~nRight click on file in Project tree~nand choose 'Set as main file'.","Build error" )
+			Else
+				MainWindow.ShowStatusBarText( "Main file of ~q"+proj.Name+"~q project is not specified!" )
+			Endif
 		Endif
 	
 	End
@@ -848,12 +852,24 @@ Class Monkey2Project
 		
 		Local jobj:=New JsonObject
 		jobj[KEY_MAIN_FILE]=New JsonString
-		jobj[KEY_HIDDEN]=New JsonArray
+		jobj[KEY_HIDDEN]=New JsonArray( New JsonValue[]( New JsonString( ".mx2" ) ) )
 		
 		SaveString( jobj.ToJson(),path )
 	End
 	
 	Method New( path:String )
+		
+		Local isFolder:=(GetFileType( path )=FileType.Directory)
+		
+		' try to load project file if it's presented
+		'
+		If isFolder
+			Local dirName:=StripDir( path )
+			Local projPath:=StripSlashes( path )+"/"+dirName+".mx2proj"
+			If FileExists( projPath )
+				path = projPath
+			Endif
+		Endif
 		
 		_path=path
 		
@@ -901,20 +917,21 @@ Class Monkey2Project
 		Return _modified
 	End
 	
-	Property Excluded:String[]()
+	Property Hidden:String[]()
 		
-		If _modified=0 Return New String[0]
-		If _modified=_excludedTime Return _excluded
+		If _modified=0 Or Not _data Return New String[0]
+		If _modified=_hiddenTime Return _hidden
 		
 		Local jarr:=_data.GetArray( KEY_HIDDEN )
 		If Not jarr Or jarr.Empty Return New String[0]
 		
-		_excluded=New String[jarr.Length]
+		_hidden=New String[jarr.Length]
 		For Local i:=0 Until jarr.Length
-			_excluded[i]=jarr[i].ToString()
+			_hidden[i]=jarr[i].ToString()
 		Next
 		
-		Return _excluded
+		_hiddenTime=_modified
+		Return _hidden
 	End
 	
 	Method Save()
@@ -942,7 +959,7 @@ Class Monkey2Project
 	Field _data:JsonObject
 	Field _isFolderBased:Bool
 	Field _modified:Int
-	Field _excluded:String[],_excludedTime:Int
+	Field _hidden:String[],_hiddenTime:Int
 	
 	Method OnChanged()
 		

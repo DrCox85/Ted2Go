@@ -97,50 +97,65 @@ Class Monkey2Parser Extends CodeParserPlugin
 		Local moduleName:=params.moduleName
 		Local geninfo:=params.geninfo
 		
-		' start parsing process
+		Local parsingData:=""
+		Local errorMessage:=""
+		
+		' start parsing process - ask mx2cc to generate .geninfo files
 		'
 		If geninfo And _enabled
-			Local parsedPath:String
-			Local cmd:=GetParseCommand( filePath,Varptr parsedPath )
+			
+			'Print "source file: "+filePath
+			
+			Local cmd:=GetParseCommand( filePath )
 			
 			If Not cmd Return "#"
 			
 			Local proc:=New ProcessReader( filePath )
 			Local str:=proc.Run( cmd )
 			
-			If Not str Return "#" 'special kind of error
+			If Not str Return "#" ' it's special kind of error
 			
 			Local hasErrors:=(str.Find( "] : Error : " ) > 0)
 			
-			If hasErrors Return str
-			
-			filePath=parsedPath
-		Endif
-		
-		Local geninfoPath:=GetGeninfoPath( filePath )
-		If Not geninfo
-			' is file modified?
-			Local time:=GetFileTime( geninfoPath )
-			If time=0 Return Null ' file not found
-		
-			Local last:=_filesTime[filePath]
-		
-			If last = 0 Or time > last
-				_filesTime[filePath]=time
-				'Print "parse file: "+filePath
-			Else
-				'Print "parse file, not modified: "+filePath
-				Return Null
+			If hasErrors
+				errorMessage=str
 			Endif
+			
 		Endif
-		'Print "info path: "+geninfoPath
-		Local jobj:=JsonObject.Parse( LoadString( geninfoPath ),True )
 		
-		If Not jobj Return "#"
+		If Not parsingData
+			
+			Local geninfoPath:=GetGeninfoPath( filePath )
+			
+			If Not geninfo
+				' was file modified?
+				Local time:=GetFileTime( geninfoPath )
+				If time=0 Return Null ' file not found
+			
+				Local last:=_filesTime[filePath]
+			
+				If last = 0 Or time > last
+					_filesTime[filePath]=time
+					'Print "parse file: "+filePath
+				Else
+					'Print "parse file, not modified: "+filePath
+					Return Null
+				Endif
+			Endif
+			
+			parsingData=LoadString( geninfoPath )
+		Endif
 		
+		
+		Local jobj:=JsonObject.Parse( parsingData )
+		
+		If Not jobj
+			Print "invalid json: "+filePath
+			Return "#"
+		Endif
 		
 		RemovePrevious( filePath )
-
+		
 		Local nspace:= jobj.Contains( "namespace" ) ? jobj["namespace"].ToString() Else ""
 		
 		If jobj.Contains( "members" )
@@ -190,7 +205,7 @@ Class Monkey2Parser Extends CodeParserPlugin
 		Endif
 		UsingsMap[filePath]=useInfo
 		
-		Return Null
+		Return errorMessage
 	End
 	
 	Method ParseJsonMembers( members:Stack<JsonValue>,parent:CodeItem,filePath:String,resultContainer:Stack<CodeItem>,namespac:String )
@@ -439,37 +454,20 @@ Class Monkey2Parser Extends CodeParserPlugin
 		
 	End
 	
-	Function GetParseCommand:String( filePathToParse:String,realParsedPath:String Ptr=Null )
+	Function GetSimpleParseCommand:String( filePathToParse:String )
 		
-		Local path:String
-		' is it a module file?
-		Local modsDir:=Prefs.MonkeyRootPath+"modules/"
-		If filePathToParse.StartsWith( modsDir ) And filePathToParse.Find( "/tests/")=-1
-			Local i1:=modsDir.Length
-			Local i2:=filePathToParse.Find( "/",i1+1 )
-			If i2<>-1
-				Local modName:=filePathToParse.Slice( i1,i2 )
-				path=modsDir+modName+"/"+modName+".monkey2"
-			Else
-				path=filePathToParse
-			Endif
-		Else
-			Local mainFile:=PathsProvider.GetActiveMainFilePath()
-			If mainFile
-				If GetFileType( mainFile )<>FileType.File
-					Alert( "File doesn't exists!~n"+mainFile,"Invalid main file" )
-				Endif
-				' is it a standalone file?
-				Local proj:=ProjectView.FindProject( filePathToParse )?.Folder
-				path = mainFile.StartsWith( proj ) ? mainFile Else filePathToParse
-			Else
-				path=filePathToParse
-			Endif
-		Endif
-		Print "path: "+path
-		realParsedPath[0]=path
+		Return "~q"+MainWindow.Mx2ccPath+"~q makeapp -parse -geninfo ~q"+filePathToParse+"~q"
+	End
+	
+	Function GetFullParseCommand:String( filePathToParse:String )
 		
-		Return path ? "~q"+MainWindow.Mx2ccPath+"~q geninfo ~q"+path+"~q" Else ""
+		Return "~q"+MainWindow.Mx2ccPath+"~q geninfo ~q"+filePathToParse+"~q"
+	End
+	
+	Function GetParseCommand:String( filePathToParse:String )
+		
+		Return GetFullParseCommand( filePathToParse )
+'		Return path ? GetFullParseCommand( path ) Else GetSimpleParseCommand( filePathToParse )
 	End
 	
 	Function GetGeninfoPath:String( filePath:String )
