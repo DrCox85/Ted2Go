@@ -42,6 +42,8 @@ Class Monkey2Parser Extends CodeParserPlugin
 		
 		New Fiber( Lambda()
 			
+			Fiber.Sleep( 1.5 )
+			
 			Local time:=Millisecs()
 			
 			ParseModules()
@@ -93,7 +95,6 @@ Class Monkey2Parser Extends CodeParserPlugin
 	Method ParseFile:String( params:ParseFileParams )
 		
 		Local filePath:=params.filePath
-		'Local pathOnDisk:=params.pathOnDisk
 		Local moduleName:=params.moduleName
 		Local geninfo:=params.geninfo
 		
@@ -106,7 +107,7 @@ Class Monkey2Parser Extends CodeParserPlugin
 			
 			'Print "source file: "+filePath
 			
-			Local cmd:=GetParseCommand( filePath )
+			Local cmd:=GetFullParseCommand( filePath )
 			
 			If Not cmd Return "#"
 			
@@ -123,36 +124,33 @@ Class Monkey2Parser Extends CodeParserPlugin
 			
 		Endif
 		
-		If Not parsingData
-			
-			Local geninfoPath:=GetGeninfoPath( filePath )
-			
-			If Not geninfo
-				' was file modified?
-				Local time:=GetFileTime( geninfoPath )
-				If time=0 Return Null ' file not found
-			
-				Local last:=_filesTime[filePath]
-			
-				If last = 0 Or time > last
-					_filesTime[filePath]=time
-					'Print "parse file: "+filePath
-				Else
-					'Print "parse file, not modified: "+filePath
-					Return Null
-				Endif
+		Local geninfoPath:=PathsProvider.GetGeninfoPath( filePath )
+		
+		If Not geninfo
+			' was file modified?
+			Local time:=GetFileTime( geninfoPath )
+			'If time=0 Return Null ' file not found
+		
+			Local last:=_filesTime[filePath]
+		
+			If last = 0 Or time > last
+				_filesTime[filePath]=time
+				'Print "parse file: "+filePath
+			Else
+				'Print "parse file, not modified: "+filePath
+				Return Null
 			Endif
-			
-			parsingData=LoadString( geninfoPath )
 		Endif
 		
+		parsingData=LoadString( geninfoPath )
 		
 		Local jobj:=JsonObject.Parse( parsingData )
 		
 		If Not jobj
-			Print "invalid json: "+filePath
+			'Print "invalid json: "+filePath
 			Return "#"
 		Endif
+		
 		
 		RemovePrevious( filePath )
 		
@@ -248,7 +246,7 @@ Class Monkey2Parser Extends CodeParserPlugin
 					
 				Case "block"
 					
-					item.Ident=""+item.ScopeStartPos+"..."+item.ScopeEndPos
+					item.Ident="block{"+item.ScopeStartPos+"..."+item.ScopeEndPos+"}"
 				
 				Case "property"
 					
@@ -317,7 +315,7 @@ Class Monkey2Parser Extends CodeParserPlugin
 			If kind="local"
 				' add into parent that isn't a nested block
 				' like method/func
-				Local par:=GetNonBlockParent( parent )
+				Local par:=CodeItem.GetNonBlockParent( parent )
 				item.SetParent( par )
 			Elseif parent
 				item.SetParent( parent )
@@ -456,32 +454,21 @@ Class Monkey2Parser Extends CodeParserPlugin
 	
 	Function GetSimpleParseCommand:String( filePathToParse:String )
 		
-		Return "~q"+MainWindow.Mx2ccPath+"~q makeapp -parse -geninfo ~q"+filePathToParse+"~q"
+		Return "~q"+MainWindow.Mx2ccPath+"~q geninfo -parse ~q"+filePathToParse+"~q"
 	End
 	
 	Function GetFullParseCommand:String( filePathToParse:String )
 		
-		Return "~q"+MainWindow.Mx2ccPath+"~q geninfo ~q"+filePathToParse+"~q"
+		Return "~q"+MainWindow.Mx2ccPath+"~q geninfo -semant ~q"+filePathToParse+"~q"
 	End
 	
-	Function GetParseCommand:String( filePathToParse:String )
+	Function GetSuitableFilePathToParse:String( filePath:String )
 		
-		Return GetFullParseCommand( filePathToParse )
-'		Return path ? GetFullParseCommand( path ) Else GetSimpleParseCommand( filePathToParse )
-	End
-	
-	Function GetGeninfoPath:String( filePath:String )
+		Local tmpPath:=PathsProvider.GetTempFilePathForParsing( filePath )
+		Local t1:=GetFileTime( filePath )
+		Local t2:=GetFileTime( tmpPath )
 		
-		Return ExtractDir( filePath )+".mx2/"+StripDir( StripExt( filePath ) )+".geninfo"
-	End
-	
-	Function GetTempFilePathForParsing:String( srcPath:String )
-		
-		Local dir:=ExtractDir( srcPath )+".mx2/"
-		CreateDir( dir )
-		Local name:=StripDir( srcPath )
-		
-		Return dir+name
+		Return t1>t2 ? filePath Else tmpPath
 	End
 	
 	
@@ -1232,16 +1219,6 @@ Class Monkey2Parser Extends CodeParserPlugin
 		Return False
 	End
 	
-	Function GetNonBlockParent:CodeItem( parent:CodeItem )
-	
-		Local par:=parent
-		While par And par.KindStr="block"
-			par=par.Parent
-		Wend
-		
-		Return par
-	End
-	
 	Function GetScopePosition:Vec2i( strPos:String )
 		
 		Local arr:=strPos.Split( ":" )
@@ -1350,17 +1327,6 @@ Class Monkey2Parser Extends CodeParserPlugin
 		' inside of item's parent
 		If item.Parent.Ident = scopeClass.Ident Return True
 		
-'		Local type:=item.Parent.Type.ident
-'		
-		' it's own class
-'		If type = scopeClass.Type.ident
-'			Return True
-'		Else
-'			' inherited
-'			Local has:=scopeClass.HasSuchSuperClass( type )
-'			If has Return item.Access = AccessMode.Protected_
-'		Endif
-		
 		Return False
 		
 	End
@@ -1371,10 +1337,11 @@ Class Monkey2Parser Extends CodeParserPlugin
 		Local endpos:=item.ScopeEndPos
 		
 		If localRule<>LOCAL_RULE_NONE And IsLocalMember( item )
-			'cursor.x-=1 ' hacking
 			If localRule=LOCAL_RULE_SELF_SCOPE
+				cursor.x-=1 ' hacking
 				Return cursor.x=srcpos.x And cursor.y>=srcpos.y
 			Elseif localRule=LOCAL_RULE_PARENT_SCOPE
+				
 				Return (cursor.x=srcpos.x And cursor.y>=srcpos.y) Or 
 						(cursor.x>srcpos.x And cursor.x<endpos.x)
 			Endif

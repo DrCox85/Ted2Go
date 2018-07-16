@@ -153,7 +153,6 @@ Class AutocompleteDialog Extends NoTitleDialog
 	Setter( value:Bool )
 		_fullIdent=""
 		_disableUsingsFilter=value
-		Print "set filer: "+value
 	End
 	
 	Property LastIdentPart:String()
@@ -262,7 +261,7 @@ Class AutocompleteDialog Extends NoTitleDialog
 				If Not usings.Contains( "monkey.." ) Then usings.Add( "monkey.." )
 			Endif
 			
-			Print "usings: "+usings?.Join( " " )
+			'Print "usings: "+usings?.Join( " " )
 			
 			_listForExtract.Clear()
 			

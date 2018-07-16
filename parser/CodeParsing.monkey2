@@ -9,6 +9,11 @@ Class CodeParsing
 		Return ExtractExt( path )=".monkey2"
 	End
 	
+	Function DeleteTempFiles()
+		
+		DocWatcher.DeleteTempFiles()
+	End
+	
 	Method New( docs:DocumentManager,projView:ProjectView )
 		
 		_docsManager=docs
@@ -175,6 +180,13 @@ Class DocWatcher
 		_timeTextChanged=Millisecs()
 	End
 	
+	Function DeleteTempFiles()
+		
+		For Local path:=Eachin _tempFiles
+			DeleteFile( path )
+		Next
+	End
+	
 	Private
 	
 	Field _view:CodeDocumentView
@@ -185,6 +197,7 @@ Class DocWatcher
 	Global _timer:Timer
 	Global _parsing:Bool
 	Global _changed:=New Stack<CodeDocument>
+	Global _tempFiles:=New StringStack
 	
 	Method OnTextChanged()
 		
@@ -245,10 +258,11 @@ Class DocWatcher
 				' always save all dirty files in temp before parsing
 				' check changescounter here to avoid unnecessarily re-savings
 				'
-				Local tmpPath:=Monkey2Parser.GetTempFilePathForParsing( changedDoc.Path )
+				Local tmpPath:=PathsProvider.GetTempFilePathForParsing( changedDoc.Path )
 				If changedDoc.CheckChangesCounter() 'Or Not FileExists( tmpPath )
 					SaveString( changedDoc.TextView.Text,tmpPath )
 					changedDoc.StoreChangesCounter()
+					CollectTempFile( tmpPath )
 				Endif
 			Next
 			
@@ -282,7 +296,7 @@ Class DocWatcher
 							Local path:=s.Slice( 0,j )
 							Local line:=Int( s.Slice( j+2,i ) )-1
 							Local msg:=s.Slice( i+12 )
-							path=path.Replace( ".mx2/","" )
+							path=path.Replace( PathsProvider.MX2_TMP,"" )
 							Local err:=New BuildError( path,line,msg )
 							_errors.Add( err )
 						Endif
@@ -310,6 +324,13 @@ Class DocWatcher
 			
 		End )
 		
+	End
+	
+	Function CollectTempFile( path:String )
+	
+		If Not _tempFiles.Contains( path )
+			_tempFiles.Add( path )
+		Endif
 	End
 	
 	Function UpdateDocItems( doc:CodeDocument,parser:ICodeParser )
