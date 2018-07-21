@@ -20,61 +20,6 @@ Class UndockWindow Extends Window
 	
 	Function NewUndock:UndockWindow( _tabbutton:TabButtonExt )
 		
-<<<<<<< HEAD
-		Field _storeView:View
-		Field _storeTabbutton:TabButtonExt
-		Field _storeIndex:Int
-		Field _visible:Int
-		
-		Global _undockWindows:=New List<UndockWindow>
-		
-		Method New()
-		
-			Super.New( "Undock Window",640,480, WindowFlags.Resizable)
-			Self.UpdateWindow( True )
-			_undockWindows.Add( Self )
-		End
-		
-		Function NewUndock:UndockWindow( _tabbutton:TabButtonExt )
-			Local _window:UndockWindow
-			
-			For Local dw:=Eachin _undockWindows
-				If(dw.Title=_tabbutton.Text)_window=dw;Exit
-			Next
-			
-			If Not (_window) _window=New UndockWindow
-			
-			_tabbutton.CurrentHolder.MakeCurrent( _tabbutton.Text )
-			_window.Title=_tabbutton.Text
-			_tabbutton.Visible=False
-			_window._storeTabbutton=_tabbutton
-			_window._storeView=_tabbutton.CurrentHolder.CurrentView
-			_window._storeIndex=_tabbutton.CurrentHolder.CurrentIndex
-		
-			_tabbutton.CurrentHolder.SetTabView( _window._storeIndex, Null )
-			
-			If Not _tabbutton.CurrentHolder.VisibleTabs _tabbutton.CurrentHolder.Visible=False
-		
-			For Local mk:=Eachin _tabbutton.CurrentHolder.Tabs
-				If mk.Visible _tabbutton.CurrentHolder.MakeCurrent( mk.Text )
-			Next
-			
-			
-			_window.ContentView=_window._storeView
-			_window._visible=True
-			_window.Activated()
-			Return _window
-		End
-			
-		Method SetUndockFrame( _frame:Recti )
-			
-			SDL_SetWindowPosition( Self.Window.SDLWindow, _frame.X, _frame.Y )
-			SDL_SetWindowSize( Self.Window.SDLWindow, _frame.Width, _frame.Height )
-			Self.Restore()
-			Local event:=New WindowEvent( EventType.WindowMoved, Self )
-			SendWindowEvent( event )
-		End
-=======
 		Local _window:UndockWindow
 	
 		For Local dw:=Eachin _undockWindows
@@ -106,7 +51,7 @@ Class UndockWindow Extends Window
 	End
 	
 	Method SetUndockFrame( _frame:Recti )
->>>>>>> dev
+
 		
 		SDL_SetWindowPosition( Self.Window.SDLWindow, _frame.X, _frame.Y )
 		SDL_SetWindowSize( Self.Window.SDLWindow, _frame.Width, _frame.Height )
@@ -126,30 +71,7 @@ Class UndockWindow Extends Window
 	End
 	
 	Method CloseWindow()
-		
-<<<<<<< HEAD
-		Method CloseWindow()
-			
-			Local view:=ContentView
-			ContentView=Null
-			_storeTabbutton.CurrentHolder.SetTabView( _storeIndex, view )
-			_storeTabbutton.Visible=True
-			If Not _storeTabbutton.CurrentHolder.Visible _storeTabbutton.CurrentHolder.Visible=True
-			SDL_HideWindow( Self.Window.SDLWindow )
-			Self._visible=False
-			_undockWindows.Remove(Self)
-		End
-		
-		Function RestoreUndock()      
-				   
-			For Local i:=Eachin _undockWindows
-				i.CloseWindow()
-			
-			Next
-
-		End	
-End
-=======
+	
 		Local view:=ContentView
 		ContentView=Null
 		_storeTabbutton.CurrentHolder.SetTabView( _storeIndex, view )
@@ -169,4 +91,4 @@ End
 	End
 	
 End
->>>>>>> dev
+

@@ -7,13 +7,13 @@
 '
 'windres resource.rc resource.o
 
-#If __ARCH__="x86"
-#Import "logo/resource.o"
-#Elseif __ARCH__="x64"
-#Import "logo/resource_x64.o"
-#Endif
-
-#Endif
+'#If __ARCH__="x86"
+'#Import "logo/resource.o"
+'#Elseif __ARCH__="x64"
+'#Import "logo/resource_x64.o"
+'#Endif
+'
+'#Endif
 
 '----------------------------
 
@@ -149,12 +149,8 @@ Using sdl2..
 
 Const MONKEY2_DOMAIN:="http://monkeycoder.co.nz"
 
-<<<<<<< HEAD
-Global AppTitle:="Ted2Go v2.11/Ex"
-=======
-Global AppTitle:="Ted2Go v2.12"
->>>>>>> dev
 
+Global AppTitle:="Ted2Go v2.12/Ex"
 
 Function Main()
 	
