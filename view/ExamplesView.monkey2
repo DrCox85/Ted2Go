@@ -10,10 +10,6 @@ Class ExamplesView Extends DockingView
 		
 		_docs=docs
 		
-		ContentView=New Label( "Collecting data..." )
-		
-		App.Idle+=LoadData
-		
 		_tree=New TreeViewExt
 		
 		' load projects when first time expanding node
@@ -40,6 +36,32 @@ Class ExamplesView Extends DockingView
 		
 	End
 	
+	Method Init()
+		
+		If _inited Return
+		
+		_inited=True
+		
+		Local label:=New Label( "Collecting data..." )
+		label.Gravity=New Vec2f( 0,0 )
+		
+		ContentView=label
+		
+		LoadData()
+		
+	End
+	
+	
+	Private
+	
+	Const VALID_FOLDERS:=New String[]( "bananas","examples","tests" )
+	
+	Field _tree:TreeViewExt
+	Field _dirIcon:Image
+	Field _fileIcon:Image
+	Field _docs:DocumentManager
+	Field _inited:Bool
+	
 	Method LoadData()
 		
 		New Fiber( Lambda()
@@ -56,10 +78,8 @@ Class ExamplesView Extends DockingView
 				Endif
 			Next
 			
-			Local t:=Millisecs()
 			' other
 			CollectFolders( Prefs.MonkeyRootPath+"modules/",folders )
-			Print "dt: "+(Millisecs()-t)
 			
 			For Local section:=Eachin VALID_FOLDERS
 				Local node:=New TreeViewExt.Node( section,_tree.RootNode )
@@ -86,15 +106,6 @@ Class ExamplesView Extends DockingView
 			ContentView=_tree
 		End )
 	End
-	
-	Private
-	
-	Const VALID_FOLDERS:=New String[]( "bananas","examples","tests" )
-	
-	Field _tree:TreeViewExt
-	Field _dirIcon:Image
-	Field _fileIcon:Image
-	Field _docs:DocumentManager
 	
 	Method GetNodeWithData:NodeWithData<FolderData>( node:TreeView.Node )
 		
@@ -170,7 +181,6 @@ Class ExamplesView Extends DockingView
 		
 		For Local file:=Eachin dirs
 			
-			Print "file: "+file
 			Local full:=path+file
 			Local data:=New FolderData
 			data.path=full
