@@ -230,6 +230,8 @@ Function Main()
 		Next
 	End
 	
+	SDL_EnableScreenSaver()
+	
 	App.Run()
 	
 End
