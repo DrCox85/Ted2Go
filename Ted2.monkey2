@@ -7,12 +7,12 @@
 '
 'windres resource.rc resource.o
 
-'#If __ARCH__="x86"
-'#Import "logo/resource.o"
-'#Elseif __ARCH__="x64"
-'#Import "logo/resource_x64.o"
-'#Endif
-'
+#If __ARCH__="x86"
+#Import "logo/resource.o"
+#Elseif __ARCH__="x64"
+#Import "logo/resource_x64.o"
+#Endif
+
 '#Endif
 
 '----------------------------
@@ -24,7 +24,7 @@
 #Import "<mojox>"
 #Import "<tinyxml2>"
 #Import "<sdl2>"
-
+ 
 #Import "action/FileActions"
 #Import "action/EditActions"
 #Import "action/BuildActions"
@@ -152,6 +152,7 @@ Const MONKEY2_DOMAIN:="http://monkeycoder.co.nz"
 
 
 Global AppTitle:="Ted2Go v2.12/Ex"
+
 
 Function Main()
 	
