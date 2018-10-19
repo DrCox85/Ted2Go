@@ -205,9 +205,9 @@ Class MainWindowInstance Extends Window
 		Local explorerAct:=New Action( " [*] " )
 		explorerAct.Triggered+=Lambda()
 			Local url:=_helpView.Url
-			requesters.OpenUrl( url )
+			OpenInExplorer( url )
 		End
-		Local explorerBtn:=New ToolButtonExt( explorerAct,"Show in Explorer" )
+		Local explorerBtn:=New ToolButtonExt( explorerAct,GetShowInExplorerTitle() )
 		bar.AddView( explorerBtn )
 		
 		bar.AddSeparator()
@@ -385,7 +385,7 @@ Class MainWindowInstance Extends Window
 		_editMenu.AddAction( _editActions.paste )
 		_editMenu.AddSeparator()
 		_editMenu.AddAction( _editActions.selectAll )
-		_editMenu.AddAction( _editActions.selectWord )
+		_editMenu.AddAction( _editActions.expandSelection )
 		_editMenu.AddSeparator()
 		' Edit -- Text
 		Local subText:=New MenuExt( "Text" )
