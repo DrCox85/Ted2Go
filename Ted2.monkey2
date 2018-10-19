@@ -150,13 +150,7 @@ Using sdl2..
 
 Const MONKEY2_DOMAIN:="http://monkeycoder.co.nz"
 
-<<<<<<< HEAD
-
-Global AppTitle:="Ted2Go v2.12/Ex"
-=======
-Global AppTitle:="Ted2Go v2.13"
->>>>>>> dev
-
+Global AppTitle:="Ted2Go v2.13/Ex"
 
 Function Main()
 	
