@@ -125,7 +125,7 @@ Class DebugView Extends DockingView
 		UpdateActions()
 	End
 	
-	Method DebugApp( appFile:String,config:String )
+	Method DebugApp( appFile:String,config:String,cmdLine:String="" )
 		
 		If _console.Running Return
 		
@@ -133,7 +133,7 @@ Class DebugView Extends DockingView
 		
 		MainWindow.ShowOutputConsole()
 	
-		Local cmd:="~q"+RealPath( appFile )+"~q"
+		Local cmd:="~q"+RealPath( appFile )+"~q "+cmdLine
 		
 		If config<>"debug"
 		

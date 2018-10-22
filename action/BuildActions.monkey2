@@ -570,6 +570,7 @@ Class BuildActions Implements IModuleBuilder
 		Endif
 		
 		Local exeFile:=product.GetExecutable()
+		Local cmdLine:=product.GetCommandLine()
 		If Not exeFile Return True
 		
 		Select target
@@ -579,7 +580,7 @@ Class BuildActions Implements IModuleBuilder
 			MainWindow.SetStatusBarActive( True )
 			MainWindow.ShowStatusBarProgress( MainWindow.OnForceStop,True )
 			
-			_debugView.DebugApp( exeFile,config )
+			_debugView.DebugApp( exeFile,config,cmdLine )
 
 		Case "emscripten"
 		

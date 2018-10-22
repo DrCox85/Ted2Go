@@ -24,6 +24,11 @@ Class BuildProduct
 		Return OnGetExecutable()
 	End
 	
+	Method GetCommandLine:String()
+		
+		Return OnGetCommandLine()
+	End
+	
 	Function GetBuildProduct:BuildProduct( srcPath:String,target:String,edit:Bool )
 	
 		Local product:BuildProduct
@@ -84,6 +89,8 @@ Class BuildProduct
 		_productDir=_productsDir+(target="ios" ? "iOS" Else target.Capitalize())+"/"
 		
 		AddVar( "Application Name",_appName )
+		AddVar("Command line parameter",_cmdLine )
+		Print GetVar("COMMAND_LINE_PARAMETER")
 	End
 	
 	Method OnCreateProduct() Virtual
@@ -94,6 +101,10 @@ Class BuildProduct
 	End
 	
 	Method OnGetExecutable:String() Virtual
+		Return ""
+	End
+	
+	Method OnGetCommandLine:String() Virtual
 		Return ""
 	End
 	
@@ -185,6 +196,7 @@ Class BuildProduct
 	Field _exts:=New StringMap<Bool>
 	Field _vars:=New StringMap<String>
 	Field _pvars:=New Stack<ProductVar>
+	Field _cmdLine:String
 	
 	Method EditVars:Bool()
 	
@@ -351,7 +363,12 @@ Class WindowsProduct Extends DesktopProduct
 
 		Return ProductDir+AppName+".exe"
 	End
-
+	
+	Method OnGetCommandLine:String() Override
+		
+		Local cmdLine:=GetVar("COMMAND_LINE_PARAMETER")
+		Return cmdLine
+	End
 End
 
 Class MacosProduct Extends DesktopProduct
