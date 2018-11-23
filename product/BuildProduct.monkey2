@@ -90,7 +90,6 @@ Class BuildProduct
 		
 		AddVar( "Application Name",_appName )
 		AddVar("Command line parameter",_cmdLine )
-		Print GetVar("COMMAND_LINE_PARAMETER")
 	End
 	
 	Method OnCreateProduct() Virtual
