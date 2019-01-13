@@ -2350,8 +2350,11 @@ Class ParamsHintView Extends TextView
 			Local params:=i.Params
 			If Not params Then s+="<no params>" ; Continue
 			For Local j:=0 Until params.Length
+				Local param:=params[j]
+				If param.hasDefaultValue Then s+=" ["
 				If j>0 Then s+=", "
 				s+=params[j].ToString()
+				If param.hasDefaultValue Then s+="]"
 			Next
 		Next
 		Text=s ' use it for TextView.OnMeasure
@@ -2393,12 +2396,14 @@ Class ParamsHintView Extends TextView
 	Field _paramIndex:Int
 	Field _color1:Color,_color2:Color
 	Field _sender:CodeTextView
+	Field _offsetX:=0,_offsetAtIndex:=-1
 	
 	Method OnRenderContent( canvas:Canvas ) Override
 		
 		Local stored:=canvas.Color
 		
-		Local x:Float,y:Float,s:=""
+		Local x0:=_offsetX
+		Local x:Float=x0,y:Float,s:=""
 		Local font:=RenderStyle.Font
 		For Local item:=Eachin _items
 			
@@ -2410,22 +2415,45 @@ Class ParamsHintView Extends TextView
 			Else
 				For Local i:=0 Until params.Length
 					
+					Local param:=params[i]
+					Local selected:=(i=_paramIndex)
+					
+					If selected And i<>_offsetAtIndex
+						If x*App.Theme.Scale.x-_offsetX>650
+							_offsetX=-500
+						Else
+							_offsetX=0
+						Endif
+						_offsetAtIndex=i
+					Endif
+					
+					canvas.Color=selected ? _color2 Else _color1
+					
+					If param.hasDefaultValue
+						Local ss:=(i>0) ? " [" Else "["
+						canvas.DrawText( ss,x,y )
+						x+=font.TextWidth( ss )
+					Endif
+					
 					If i>0
-						canvas.Color=_color1
 						canvas.DrawText( ", ",x,y )
 						x+=font.TextWidth( ", " )
 					Endif
 					
 					s=params[i].ToString()
-					canvas.Color=(i=_paramIndex) ? _color2 Else _color1
 					canvas.DrawText( s,x,y )
 					x+=font.TextWidth( s )
+					
+					If param.hasDefaultValue
+						canvas.DrawText( "]",x,y )
+						x+=font.TextWidth( "]" )
+					Endif
 				Next
 				
 			Endif
 			
 			y+=font.Height
-			x=0
+			x=x0
 		Next
 		
 		canvas.Color=stored
