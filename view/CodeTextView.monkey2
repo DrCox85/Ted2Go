@@ -382,6 +382,54 @@ Class CodeTextView Extends TextView
 		Return Text.Slice( i1,i2 )
 	End
 	
+	Method CommentBlock( commentMark:String="'" )
+		
+		CommentUncommentBlock( True,commentMark )
+	End
+	
+	Method UncommentBlock( commentMark:String="'" )
+		
+		CommentUncommentBlock( False,commentMark )
+	End
+	
+	Method DuplicateBlock()
+		
+		Local cur:=Cursor,anc:=Anchor
+		If cur=anc ' duplicate whole line
+			
+			Local pos:=PosInLineAtCursor
+			Local line:=Document.FindLine( cur )
+			Local s:=LineTextAtCursor
+			Local ends:=Document.EndOfLine( line )
+			SelectText( ends,ends )
+			ReplaceText( "~n"+s )
+			pos=pos+StartOfLineAtCursor
+			SelectText( pos,pos )
+			
+		Else ' duplicate selection
+			
+			Local min:=Min( Cursor,Anchor )
+			Local max:=Max( Cursor,Anchor )
+			Local selLen:=max-min
+			Local s:=SelectedText
+			Local atEnd:=(max=Document.EndOfLine( Document.FindLine( max ) ))
+			If atEnd
+				Local minLine:=Document.FindLine( min )
+				Local s0:=Document.GetLine( minLine )
+				Local pos:=min-Document.StartOfLine( minLine )
+				Local indent:=Min( GetIndent( s0 ),pos )
+				Local indentStr:=(indent>0) ? s0.Slice( 0,indent ) Else ""
+				s="~n"+indentStr+s
+				selLen+=indentStr.Length
+			Endif
+			SelectText( max,max )
+			ReplaceText( s )
+			Local pos:=max+Int(atEnd)
+			SelectText( pos,pos+selLen )
+			
+		Endif
+	End
+	
 	Property IsCursorAtTheEndOfLine:Bool()
 		
 		Local line:=Document.FindLine( Cursor )
@@ -1295,6 +1343,39 @@ Class CodeTextView Extends TextView
 		_typing=False
 		If Formatter
 			Formatter.FormatLine( Self,line )
+		Endif
+	End
+	
+	Method CommentUncommentBlock( comment:Bool,commentMark:String="'" )
+		
+		Local doc:=Document
+		Local i1:=Min( Cursor,Anchor )
+		Local i2:=Max( Cursor,Anchor )
+		Local line1:=doc.FindLine( i1 )
+		Local line2:=doc.FindLine( i2 )
+		
+		Local result:=""
+		Local made:=False
+		For Local line:=line1 To line2
+			Local s:= doc.GetLine( line )
+			If comment
+				s=commentMark+s
+				made=True
+			Elseif s.StartsWith( commentMark )
+				s=s.Slice( 1 )
+				made=True
+			Endif
+			If result Then result+="~n"
+			result+=s
+		Next
+		' if have changes
+		If made
+			i1=doc.StartOfLine( line1 )
+			i2=doc.EndOfLine( line2 )
+			SelectText( i1,i2 )
+			ReplaceText( result )
+			' select commented / uncommented lines
+			SelectText( i1,i1+result.Length )
 		Endif
 	End
 	
