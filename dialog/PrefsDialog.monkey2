@@ -98,6 +98,7 @@ Class PrefsDialog Extends DialogExt
 	Field _mainUseOpenGlEsProfile:CheckButton
 	
 	Field _monkeyRootPath:TextFieldExt
+	Field _mingw64Path:TextFieldExt
 	
 	Field _chatNick:TextFieldExt
 	Field _chatServer:TextFieldExt
@@ -217,7 +218,23 @@ Class PrefsDialog Extends DialogExt
 			Endif
 		
 		End
+		_mingw64Path=New TextFieldExt(Prefs.MingWPath)
+		_mingw64Path.Enabled=False
+		Local chooseMingWPath:=New Action( "..." )
+		chooseMingWPath.Triggered+=Lambda()
+		
+			Local initDir:=Prefs.MingWPath
+		
+			Local path:=MainWindow.RequestDir( "Choose MingW bin folder",initDir )
+			If Not path Return
+			_mingw64Path.Text=path
+			Prefs.MingWPath=path
+			MainWindow.UpdateToolsPaths()
+			Return
+		End
+		
 		Local btnChooseMonkeyPath:=New PushButton( chooseMonkeyPath )
+		Local btnChooseMingWPath:=New PushButton(chooseMingWPath)
 		
 		Local docker:=New DockingView
 		Local monkeyPathDock:=New DockingView
@@ -225,8 +242,14 @@ Class PrefsDialog Extends DialogExt
 		monkeyPathDock.AddView( _monkeyRootPath,"left" )
 		monkeyPathDock.AddView( btnChooseMonkeyPath,"left" )
 		
+		Local mingwPathDock:=New DockingView
+		mingwPathDock.AddView( New Label( "MingW64 bin folder:" ),"left" )
+		mingwPathDock.AddView( _mingw64Path,"left" )
+		mingwPathDock.AddView( btnChooseMingWPath,"left" )
+		
 		docker.AddView( New Label( " " ),"top" )
 		docker.AddView( monkeyPathDock,"top" )
+		docker.AddView( mingwPathDock, "top")
 		
 		docker.AddView( New Label( " " ),"top" )
 		docker.AddView( _mainProjectIcons,"top" )

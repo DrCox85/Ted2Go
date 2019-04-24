@@ -675,6 +675,11 @@ Class MainWindowInstance Extends Window
 		Return _mx2cc
 	End
 	
+	Property MingWPath:String()
+	
+		Return _mingw64
+	End
+	
 	Property ModsPath:String()
 	
 		Return _modsDir
@@ -803,6 +808,7 @@ Class MainWindowInstance Extends Window
 		_mx2cc=RealPath( _mx2cc )
 		
 		_modsDir=RealPath( "modules/" )
+		_mingw64=Prefs.MingWPath+"bin/"
 	End
 	
 	Method SwapFullscreenWindow()
@@ -1813,6 +1819,7 @@ Class MainWindowInstance Extends Window
 	Field _mx2cc:String
 	Field _mx2ccDir:String
 	Field _modsDir:String
+	Field _mingw64:String
 	
 	Field _toolBar:ToolBarExt
 	Field _saveItem:MultiIconToolButton

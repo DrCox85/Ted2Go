@@ -45,6 +45,7 @@ Class PrefsInstance
 	Field SourceShowInherited:=False
 	'
 	Field MonkeyRootPath:String
+	Field MingWPath:String
 	Field IdeHomeDir:String
 	Field OpenGlProfile:="es"
 	Field HotkeysFilePath:String
@@ -190,6 +191,7 @@ Class PrefsInstance
 		
 		MonkeyRootPath=Json_GetString( json.Data,"rootPath","" )
 		If Not MonkeyRootPath.EndsWith( "/" ) Then MonkeyRootPath+="/"
+		MingWPath=Json_GetString(json.Data,"mingwPath","")
 		
 		FindFilesFilter=Json_GetString( json.Data,"findFilesFilter","monkey2,txt" )
 	End
@@ -200,6 +202,7 @@ Class PrefsInstance
 		
 		Local json:=New JsonObject
 		json["rootPath"]=New JsonString( MonkeyRootPath )
+		json["mingwPath"]=New JsonString(MingWPath)
 		json["findFilesFilter"]=New JsonString( FindFilesFilter )
 		json.Save( AppDir()+"state.json" )
 		

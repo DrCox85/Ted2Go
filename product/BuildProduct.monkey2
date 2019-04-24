@@ -29,6 +29,11 @@ Class BuildProduct
 		Return OnGetCommandLine()
 	End
 	
+	Method GetIconFile:String()
+		
+		Return OnGetIconFile()
+	End
+	
 	Function GetBuildProduct:BuildProduct( srcPath:String,target:String,edit:Bool )
 	
 		Local product:BuildProduct
@@ -90,6 +95,7 @@ Class BuildProduct
 		
 		AddVar( "Application Name",_appName )
 		AddVar("Command line parameter",_cmdLine )
+		AddVar("Icon File",_iconFile)
 	End
 	
 	Method OnCreateProduct() Virtual
@@ -104,6 +110,10 @@ Class BuildProduct
 	End
 	
 	Method OnGetCommandLine:String() Virtual
+		Return ""
+	End
+	
+	Method OnGetIconFile:String() Virtual
 		Return ""
 	End
 	
@@ -196,6 +206,7 @@ Class BuildProduct
 	Field _vars:=New StringMap<String>
 	Field _pvars:=New Stack<ProductVar>
 	Field _cmdLine:String
+	Field _iconFile:String
 	
 	Method EditVars:Bool()
 	
@@ -367,6 +378,12 @@ Class WindowsProduct Extends DesktopProduct
 		
 		Local cmdLine:=GetVar("COMMAND_LINE_PARAMETER")
 		Return cmdLine
+	End
+	
+	Method OnGetIconFile:String() Override
+		
+		Local iconFile:=GetVar("ICON_FILE")
+		Return iconFile
 	End
 End
 

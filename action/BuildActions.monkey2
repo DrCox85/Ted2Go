@@ -385,7 +385,7 @@ Class BuildActions Implements IModuleBuilder
 	
 		ClearErrors()
 		
-		_console.Clear()
+		'_console.Clear()
 		
 		MainWindow.StoreConsoleVisibility()
 		
@@ -511,13 +511,72 @@ Class BuildActions Implements IModuleBuilder
 		Return BuildMx2( MainWindow.Mx2ccPath+" makedocs","Rebuilding documentation...","build","",True )
 	End
 	
-	Method BuildApp:Bool( config:String,target:String,sourceAction:String )
+	Method AddIconTempFile:String(file:String,iconFile:String)
+		
+		If Not ExtractExt(iconFile)=".ico" Then Return file
+		Local resProcessx86:=New Process
+		Local resProcessx64:=New Process
+		Local saveDir:=CurrentDir()
+		Print MainWindow.MingWPath
+		Local mingwpath:=CurrentDir()+"/devtools/mingw64/bin/"
+		Local mainpath:=ExtractDir(file)
+		Local tempfile:=StripExt(file)+"_icon.monkey2"
+		Local rcfile:=StripExt(file)+".rc"
+		
+		
+		'Create Resource File
+		Local _rcFile:=FileStream.Open(rcfile,"w")
+		_rcFile.WriteLine("AppIcon ICON ~q"+StripDir(iconFile)+"~q")
+		_rcFile.Close()
+		
+		CopyFile(iconFile,mingwpath+StripDir(iconFile))
+		CopyFile(rcfile,mingwpath+"resource.rc")
+		ChangeDir(mingwpath)
+		resProcessx86.Start("windres -v --target=pe-i386 resource.rc resource.o")
+		Sleep(1) 
+		resProcessx64.Start("windres -v --target=pe-x86-64 resource.rc resource_x64.o")
+		Sleep(1)
+		ChangeDir(saveDir)
+		_console.Write("~nCreate Icon Files.")
+		_console.Write("~nDone.")
+		CopyFile(mingwpath+"resource.o", mainpath+"resource.o")
+		CopyFile(mingwpath+"resource_x64.o", mainpath+"resource_x64.o")
+		DeleteFile(rcfile)
+		DeleteFile(mingwpath+"resource.o")
+		DeleteFile(mingwpath+"resource_x64.o")
+		DeleteFile(mingwpath+"resource.rc")
+		DeleteFile(mingwpath+StripDir(iconFile))
+		
+		'Create new file with Icon Imports
+		Local _readFile:=FileStream.Open(file,"r")
+		Local _writeFile:=FileStream.Open(tempfile,"w")
+		_writeFile.WriteLine("#If __ARCH__=~qx86~q")
+		_writeFile.WriteLine("#Import ~qresource.o~q")
+		_writeFile.WriteLine("#Elseif __ARCH__=~qx64~q")
+		_writeFile.WriteLine("#Import ~qresource_x64.o~q")
+		_writeFile.WriteLine("#Endif")
+		_writeFile.WriteLine("'END ICON CODE")
+		While Not _readFile.Eof
+			Local _line:=_readFile.ReadLine()
+			_writeFile.WriteLine(_line)
+		Wend
+		_readFile.Close()
+		_writeFile.Close()
+		
+		Return tempfile
+	End
 	
+	Method BuildApp:Bool( config:String,target:String,sourceAction:String )
+		
 		Local buildDocPath:=FilePathToBuildWithPrompt
 		If Not buildDocPath Return False
 		
 		Local product:=BuildProduct.GetBuildProduct( buildDocPath,target,False )
 		If Not product Return False
+		
+		Local iconFile:=product.GetIconFile()
+		
+		If GetFileType(iconFile)=FileType.File And ExtractExt(iconFile)=".ico" Then buildDocPath=AddIconTempFile(buildDocPath,iconFile)
 		
 		Local opts:=product.GetMx2ccOpts()
 		
@@ -525,7 +584,7 @@ Class BuildActions Implements IModuleBuilder
 		
 		Local action:=sourceAction
 		If run Then action="build"
-
+		
 		Local cmd:=MainWindow.Mx2ccPath+" makeapp -"+action+" "+opts
 		If Verbosed cmd+=" -verbose"
 		cmd+=" -config="+config
@@ -536,8 +595,15 @@ Class BuildActions Implements IModuleBuilder
 		Local msg:=title+" ~ "+target+" ~ "+config+" ~ "+StripDir( buildDocPath )
 		
 		If Not BuildMx2( cmd,msg,sourceAction,buildDocPath,True ) Return False
-		
+	
 		_console.Write("~nDone.")
+		
+		If buildDocPath.Contains("_icon.monkey2")Then
+			Local path:=ExtractDir(buildDocPath) 
+			DeleteFile(buildDocPath)
+			DeleteFile(path+"resource.o")
+			DeleteFile(path+"resource_x64.o")
+		End
 		
 		If Not run
 			MainWindow.RestoreConsoleVisibility()
