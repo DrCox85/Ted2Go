@@ -7,11 +7,13 @@ Class ProductVar
 	Field name:String
 	Field value:String
 	Field type:String
+	Field filter:String
 		
-	Method New( name:String,value:String,type:String="string" )
+	Method New( name:String,value:String,type:String="string",filter:String="" )
 		Self.name=name
 		Self.value=value
 		Self.type=type
+		Self.filter=filter
 	End
 	
 	Method CreateFieldView:View()
@@ -39,6 +41,15 @@ Class ProductVar
 			
 			fieldView=view
 			
+		Case "file"
+		
+			Local view:=New FilePathField( value,FileType.File )
+			If (filter) view.FileFilter=filter
+			view.FilePathChanged=Lambda()
+				value=view.FilePath
+			End
+			
+			fieldView=view	
 		Default
 		
 			If type.StartsWith( "options:" )

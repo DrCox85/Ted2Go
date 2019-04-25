@@ -383,10 +383,6 @@ Class BuildActions Implements IModuleBuilder
 
 	Method BuildMx2:Bool( cmd:String,progressText:String,action:String="build",buildFile:String="",showElapsedTime:Bool=False )
 	
-		ClearErrors()
-		
-		'_console.Clear()
-		
 		MainWindow.StoreConsoleVisibility()
 		
 		MainWindow.ShowBuildConsole()
@@ -513,9 +509,11 @@ Class BuildActions Implements IModuleBuilder
 	
 	Method AddIconTempFile:String(file:String,iconFile:String)
 		
-		If Not ExtractExt(iconFile)=".ico" Then Return file
-		Local resProcessx86:=New Process
-		Local resProcessx64:=New Process
+		If Not ExtractExt(iconFile)=".ico" Then 
+			_console.Write("Icon File not found:"+iconFile)
+			Return file
+		End
+	
 		Local saveDir:=CurrentDir()
 		Print MainWindow.MingWPath
 		Local mingwpath:=CurrentDir()+"/devtools/mingw64/bin/"
@@ -532,13 +530,26 @@ Class BuildActions Implements IModuleBuilder
 		CopyFile(iconFile,mingwpath+StripDir(iconFile))
 		CopyFile(rcfile,mingwpath+"resource.rc")
 		ChangeDir(mingwpath)
-		resProcessx86.Start("windres -v --target=pe-i386 resource.rc resource.o")
-		Sleep(1) 
-		resProcessx64.Start("windres -v --target=pe-x86-64 resource.rc resource_x64.o")
-		Sleep(1)
+		_console.Start("windres -v --target=pe-i386 resource.rc resource.o")
+		Repeat
+			Local result:=_console.ReadStdoutWithErrors()
+			Local stdout:=result.stdout
+			If Not stdout Exit
+			_console.Write( stdout )
+		Forever
+		
+		_console.Start("windres -v --target=pe-x86-64 resource.rc resource_x64.o")
+		Repeat
+			Local result:=_console.ReadStdoutWithErrors()
+			Local stdout:=result.stdout
+			If Not stdout Exit
+			_console.Write( stdout )
+		Forever
+		
 		ChangeDir(saveDir)
-		_console.Write("~nCreate Icon Files.")
+		_console.Write("~nCreate Icon Files...")
 		_console.Write("~nDone.")
+		_console.Write("~n")
 		CopyFile(mingwpath+"resource.o", mainpath+"resource.o")
 		CopyFile(mingwpath+"resource_x64.o", mainpath+"resource_x64.o")
 		DeleteFile(rcfile)
@@ -568,16 +579,20 @@ Class BuildActions Implements IModuleBuilder
 	
 	Method BuildApp:Bool( config:String,target:String,sourceAction:String )
 		
+		ClearErrors()
+			
+		_console.Clear()
+		
 		Local buildDocPath:=FilePathToBuildWithPrompt
 		If Not buildDocPath Return False
 		
 		Local product:=BuildProduct.GetBuildProduct( buildDocPath,target,False )
 		If Not product Return False
-		
+		#if __TARGET__="windows"
 		Local iconFile:=product.GetIconFile()
 		
 		If GetFileType(iconFile)=FileType.File And ExtractExt(iconFile)=".ico" Then buildDocPath=AddIconTempFile(buildDocPath,iconFile)
-		
+		#Endif
 		Local opts:=product.GetMx2ccOpts()
 		
 		Local run:=(sourceAction="run")

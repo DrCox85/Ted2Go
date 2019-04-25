@@ -95,7 +95,9 @@ Class BuildProduct
 		
 		AddVar( "Application Name",_appName )
 		AddVar("Command line parameter",_cmdLine )
-		AddVar("Icon File",_iconFile)
+		#if __TARGET__="windows"
+		AddVar("Icon File",_iconFile,"file","ico")
+		#Endif
 	End
 	
 	Method OnCreateProduct() Virtual
@@ -124,9 +126,9 @@ Class BuildProduct
 		Next
 	End
 	
-	Method AddVar( name:String,value:String,type:String="string" )
+	Method AddVar( name:String,value:String,type:String="string",filter:String="" )
 	
-		_pvars.Push( New ProductVar( name,value,type ) )
+		_pvars.Push( New ProductVar( name,value,type,filter ) )
 	End
 	
 	Method GetVar:String( name:String )
