@@ -40,6 +40,7 @@ Class PrefsInstance
 	Field EditorTabSize:=4
 	Field EditorRemoveLinesTrailing:=False
 	Field EditorLineSpacing:=1.0
+	Field EditorFullscreenSize:=0.7
 	'
 	Field SourceSortByType:=True
 	Field SourceShowInherited:=False
@@ -109,7 +110,7 @@ Class PrefsInstance
 			EditorTabSize=Json_GetInt( j2,"tabSize",EditorTabSize )
 			EditorRemoveLinesTrailing=Json_GetBool( j2,"removeLinesTrailing",EditorRemoveLinesTrailing )
 			EditorLineSpacing=Json_GetFloat( j2,"lineSpacing",EditorLineSpacing )
-			
+			EditorFullscreenSize=Json_GetFloat( j2,"fullscreenSize", EditorFullscreenSize )
 		Endif
 		
 		If json.Contains( "source" )
@@ -169,7 +170,7 @@ Class PrefsInstance
 		j["tabSize"]=New JsonNumber( EditorTabSize )
 		j["removeLinesTrailing"]=New JsonBool( EditorRemoveLinesTrailing )
 		j["lineSpacing"]=New JsonNumber( EditorLineSpacing )
-		
+		j["fullscreenSize"]=New JsonNumber( EditorFullscreenSize )
 		j=New JsonObject
 		json["source"]=j
 		j["sortByType"]=New JsonBool( SourceSortByType )

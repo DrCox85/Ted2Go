@@ -87,6 +87,7 @@ Class PrefsDialog Extends DialogExt
 	Field _editorTabSize:TextFieldExt
 	Field _editorRemoveLinesTrailing:CheckButton
 	Field _editorLineSpacing:TextFieldExt
+	Field _editorFullscreenSize:TextFieldExt
 	
 	Field _mainToolBarVisible:CheckButton
 	Field _mainToolBarSide:CheckButton
@@ -147,6 +148,7 @@ Class PrefsDialog Extends DialogExt
 		Prefs.EditorTabSize=Clamp( Int(size),1,16 )
 		Prefs.EditorRemoveLinesTrailing=_editorRemoveLinesTrailing.Checked
 		Prefs.EditorLineSpacing=Clamp( Float(_editorLineSpacing.Text.Trim()),0.5,2.5 )
+		Prefs.EditorFullscreenSize=Clamp( Float(_editorFullscreenSize.Text.Trim()),0.7,1.0 )
 		
 		Prefs.MainToolBarVisible=_mainToolBarVisible.Checked
 		Prefs.MainToolBarSide=_mainToolBarSide.Checked
@@ -305,6 +307,8 @@ Class PrefsDialog Extends DialogExt
 		
 		_editorLineSpacing=New TextFieldExt( ""+Prefs.EditorLineSpacing )
 		
+		_editorFullscreenSize=New TextFieldExt( ""+Prefs.EditorFullscreenSize )
+		
 		Local path:=Prefs.EditorFontPath
 		If Not path Then path=_defaultFont
 		_editorFontPath=New TextFieldExt( "" )
@@ -358,6 +362,12 @@ Class PrefsDialog Extends DialogExt
 		lineSpacing.AddView( _editorLineSpacing,"left" )
 		lineSpacing.AddView( New Label( "  0.5...2.5" ),"left" )
 		
+		Local fulls:=New DockingView
+		fulls.AddView( New Label( "Editor Fullscreen Size:" ),"left" )
+		_editorFullscreenSize.MaxSize=New Vec2i( 100,100 )
+		fulls.AddView( _editorFullscreenSize,"left" )
+		fulls.AddView( New Label( "  0.2...1.0" ),"left" )
+		
 		Local docker:=New DockingView
 		docker.AddView( New Label( " " ),"top" )
 		docker.AddView( _editorToolBarVisible,"top" )
@@ -373,6 +383,7 @@ Class PrefsDialog Extends DialogExt
 		docker.AddView( _editorRemoveLinesTrailing,"top" )
 		docker.AddView( tabs,"top" )
 		docker.AddView( lineSpacing,"top" )
+		docker.AddView( fulls, "top" )
 		docker.AddView( New Label( " " ),"top" )
 		
 		
