@@ -26,7 +26,7 @@ End
 
 Interface IModuleBuilder
 	
-	' cleanState: 
+	' cleanState:
 	' -1: don't clean
 	' 0: use previous
 	' 1: clean
@@ -507,74 +507,112 @@ Class BuildActions Implements IModuleBuilder
 		Return BuildMx2( MainWindow.Mx2ccPath+" makedocs","Rebuilding documentation...","build","",True )
 	End
 	
-	Method AddIconTempFile:String(file:String,iconFile:String)
+	Method AddResourceFile:String(file:String,product:BuildProduct)
 		
-		If Not ExtractExt(iconFile)=".ico" Then 
-			_console.Write("Icon File not found:"+iconFile)
+		Local iconFile:=product.GetIconFile()
+			
+		If GetFileType(iconFile)=FileType.File And ExtractExt(iconFile)=".ico" Then
+			
+			Local saveDir:=CurrentDir()
+			Local mingwpath:=Prefs.MingWPath+"\bin\"
+			If Not FileExists(mingwpath+"\windres.exe") Alert("Icon compile error.~n~nWrong MingW64 Path~n~nSet Path in Preferences");Return file
+			Local mainpath:=ExtractDir(file)
+			Local tempfile:=StripExt(file)+"_icon.monkey2"
+			Local rcfile:=StripExt(file)+".rc"
+			
+			'Create Resource File
+			Local _rcFile:=FileStream.Open(rcfile,"w")
+			Local _icon:String				=StripDir(iconFile)
+			Local _companyName:String		=product.GetCompanyName()
+			Local _fileDescription:String	=product.GetFileDescription()
+			Local _fileVersion:String		=product.GetFileVersion()
+			Local _internalName:String		=product.GetInternalName()
+			Local _legalCopyright:String	=product.GetLegalCopyright()
+			Local _originalFilename:String	=product.GetOriginalFilename()
+			Local _productName:String		=product.GetProductName()
+			Local _productVersion:String	=product.GetProductVersion()
+			
+			_rcFile.WriteLine("AppIcon ICON ~q"+_icon+"~q~r
+			1 VERSIONINFO~r
+			FILEVERSION     1,0,0,0~r
+			PRODUCTVERSION  1,0,0,0~r
+			BEGIN~r
+			  BLOCK ~qStringFileInfo~q~r
+			  BEGIN~r
+			    BLOCK ~q080904E4~q~r
+			    BEGIN~r")
+			    
+			   	  If _companyName _rcFile.WriteLine("VALUE ~qCompanyName~q, ~q"+_companyName+"~q~r")
+			      If _fileDescription _rcFile.WriteLine("VALUE ~qFileDescription~q, ~q"+_fileDescription+"~q~r")
+			      If _fileVersion _rcFile.WriteLine("VALUE ~qFileVersion~q, ~q"+_fileVersion+"~q~r")
+			      If _internalName _rcFile.WriteLine("VALUE ~qInternalName~q, ~q"+_internalName+"~q~r")
+			      If _legalCopyright _rcFile.WriteLine("VALUE ~qLegalCopyright~q, ~q"+_legalCopyright+"~q~r")
+			      If _originalFilename _rcFile.WriteLine("VALUE ~qOriginalFilename~q, ~q"+_originalFilename+"~q~r")
+			      If _productName _rcFile.WriteLine("VALUE ~qProductName~q, ~q"+_productName+"~q~r")
+			      If _productVersion _rcFile.WriteLine("VALUE ~qProductVersion~q, ~q"+_productVersion+"~q~r")
+			      
+			_rcFile.WriteLine("END~r
+			  END~r
+			  BLOCK ~qVarFileInfo~q~r
+			  BEGIN~r
+			    VALUE ~qTranslation~q, 0x407, 1252~r
+			  END~r
+			END~r
+			")
+			_rcFile.Close()
+			
+			CopyFile(iconFile,mingwpath+StripDir(iconFile))
+			CopyFile(rcfile,mingwpath+"resource.rc")
+			ChangeDir(mingwpath)
+			_console.Start("windres -v --target=pe-i386 resource.rc resource.o")
+			Repeat
+				Local result:=_console.ReadStdoutWithErrors()
+				Local stdout:=result.stdout
+				If Not stdout Exit
+				_console.Write( stdout )
+			Forever
+		
+			_console.Start("windres -v --target=pe-x86-64 resource.rc resource_x64.o")
+			Repeat
+				Local result:=_console.ReadStdoutWithErrors()
+				Local stdout:=result.stdout
+				If Not stdout Exit
+				_console.Write( stdout )
+			Forever
+		
+			ChangeDir(saveDir)
+			_console.Write("~nCreate Icon Files...")
+			_console.Write("~nDone.")
+			_console.Write("~n")
+			CopyFile(mingwpath+"resource.o", mainpath+"resource.o")
+			CopyFile(mingwpath+"resource_x64.o", mainpath+"resource_x64.o")
+			DeleteFile(rcfile)
+			DeleteFile(mingwpath+"resource.o")
+			DeleteFile(mingwpath+"resource_x64.o")
+			DeleteFile(mingwpath+"resource.rc")
+			DeleteFile(mingwpath+StripDir(iconFile))
+			If Not FileExists(mainpath+"resource.o")Then _console.Write("No resource_x64 found");Return file
+			If Not FileExists(mainpath+"resource_x64.o")Then _console.Write("No resource_x64 found"); Return file
+			'Create new file with Icon Imports
+			Local _readFile:=FileStream.Open(file,"r")
+			Local _writeFile:=FileStream.Open(tempfile,"w")
+			_writeFile.WriteLine("#If __ARCH__=~qx86~q")
+			_writeFile.WriteLine("#Import ~qresource.o~q")
+			_writeFile.WriteLine("#Elseif __ARCH__=~qx64~q")
+			_writeFile.WriteLine("#Import ~qresource_x64.o~q")
+			_writeFile.WriteLine("#Endif")
+			_writeFile.WriteLine("'END ICON CODE")
+			While Not _readFile.Eof
+				Local _line:=_readFile.ReadLine()
+				_writeFile.WriteLine(_line)
+			Wend
+			_readFile.Close()
+			_writeFile.Close()
+			
+			Return tempfile
+		Else
 			Return file
 		End
-	
-		Local saveDir:=CurrentDir()
-		Print MainWindow.MingWPath
-		Local mingwpath:=CurrentDir()+"/devtools/mingw64/bin/"
-		Local mainpath:=ExtractDir(file)
-		Local tempfile:=StripExt(file)+"_icon.monkey2"
-		Local rcfile:=StripExt(file)+".rc"
-		
-		
-		'Create Resource File
-		Local _rcFile:=FileStream.Open(rcfile,"w")
-		_rcFile.WriteLine("AppIcon ICON ~q"+StripDir(iconFile)+"~q")
-		_rcFile.Close()
-		
-		CopyFile(iconFile,mingwpath+StripDir(iconFile))
-		CopyFile(rcfile,mingwpath+"resource.rc")
-		ChangeDir(mingwpath)
-		_console.Start("windres -v --target=pe-i386 resource.rc resource.o")
-		Repeat
-			Local result:=_console.ReadStdoutWithErrors()
-			Local stdout:=result.stdout
-			If Not stdout Exit
-			_console.Write( stdout )
-		Forever
-		
-		_console.Start("windres -v --target=pe-x86-64 resource.rc resource_x64.o")
-		Repeat
-			Local result:=_console.ReadStdoutWithErrors()
-			Local stdout:=result.stdout
-			If Not stdout Exit
-			_console.Write( stdout )
-		Forever
-		
-		ChangeDir(saveDir)
-		_console.Write("~nCreate Icon Files...")
-		_console.Write("~nDone.")
-		_console.Write("~n")
-		CopyFile(mingwpath+"resource.o", mainpath+"resource.o")
-		CopyFile(mingwpath+"resource_x64.o", mainpath+"resource_x64.o")
-		DeleteFile(rcfile)
-		DeleteFile(mingwpath+"resource.o")
-		DeleteFile(mingwpath+"resource_x64.o")
-		DeleteFile(mingwpath+"resource.rc")
-		DeleteFile(mingwpath+StripDir(iconFile))
-		
-		'Create new file with Icon Imports
-		Local _readFile:=FileStream.Open(file,"r")
-		Local _writeFile:=FileStream.Open(tempfile,"w")
-		_writeFile.WriteLine("#If __ARCH__=~qx86~q")
-		_writeFile.WriteLine("#Import ~qresource.o~q")
-		_writeFile.WriteLine("#Elseif __ARCH__=~qx64~q")
-		_writeFile.WriteLine("#Import ~qresource_x64.o~q")
-		_writeFile.WriteLine("#Endif")
-		_writeFile.WriteLine("'END ICON CODE")
-		While Not _readFile.Eof
-			Local _line:=_readFile.ReadLine()
-			_writeFile.WriteLine(_line)
-		Wend
-		_readFile.Close()
-		_writeFile.Close()
-		
-		Return tempfile
 	End
 	
 	Method BuildApp:Bool( config:String,target:String,sourceAction:String )
@@ -588,11 +626,11 @@ Class BuildActions Implements IModuleBuilder
 		
 		Local product:=BuildProduct.GetBuildProduct( buildDocPath,target,False )
 		If Not product Return False
-		#if __TARGET__="windows"
-		Local iconFile:=product.GetIconFile()
 		
-		If GetFileType(iconFile)=FileType.File And ExtractExt(iconFile)=".ico" Then buildDocPath=AddIconTempFile(buildDocPath,iconFile)
+		#if __TARGET__="windows"
+		buildDocPath=AddResourceFile(buildDocPath,product)
 		#Endif
+		
 		Local opts:=product.GetMx2ccOpts()
 		
 		Local run:=(sourceAction="run")
@@ -614,7 +652,7 @@ Class BuildActions Implements IModuleBuilder
 		_console.Write("~nDone.")
 		
 		If buildDocPath.Contains("_icon.monkey2")Then
-			Local path:=ExtractDir(buildDocPath) 
+			Local path:=ExtractDir(buildDocPath)
 			DeleteFile(buildDocPath)
 			DeleteFile(path+"resource.o")
 			DeleteFile(path+"resource_x64.o")

@@ -243,7 +243,7 @@ Class PrefsDialog Extends DialogExt
 		monkeyPathDock.AddView( btnChooseMonkeyPath,"left" )
 		
 		Local mingwPathDock:=New DockingView
-		mingwPathDock.AddView( New Label( "MingW64 bin folder:" ),"left" )
+		mingwPathDock.AddView( New Label( "MingW64 folder:" ),"left" )
 		mingwPathDock.AddView( _mingw64Path,"left" )
 		mingwPathDock.AddView( btnChooseMingWPath,"left" )
 		

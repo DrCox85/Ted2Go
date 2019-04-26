@@ -34,6 +34,46 @@ Class BuildProduct
 		Return OnGetIconFile()
 	End
 	
+	Method GetCompanyName:String()
+		
+		Return OnGetCompanyName()
+	End
+	
+	Method GetFileDescription:String()
+		
+		Return OnGetFileDescription()
+	End
+	
+	Method GetFileVersion:String()
+		
+		Return OnGetFileVersion()
+	End
+	
+	Method GetInternalName:String()
+		
+		Return OnGetInternalName()
+	End
+	
+	Method GetLegalCopyright:String()
+		
+		Return OnGetLegalCopyright()
+	End
+	
+	Method GetOriginalFilename:String()
+		
+		Return OnGetOriginalFilename()
+	End
+	
+	Method GetProductName:String()
+		
+		Return OnGetProductName()
+	End
+	
+	Method GetProductVersion:String()
+		
+		Return OnGetProductVersion()
+	End
+	
 	Function GetBuildProduct:BuildProduct( srcPath:String,target:String,edit:Bool )
 	
 		Local product:BuildProduct
@@ -96,7 +136,17 @@ Class BuildProduct
 		AddVar( "Application Name",_appName )
 		AddVar("Command line parameter",_cmdLine )
 		#if __TARGET__="windows"
+		
 		AddVar("Icon File",_iconFile,"file","ico")
+		AddVar("Company Name",_companyName)
+		AddVar("File Description",_fileDescription)
+		AddVar("File Version", _fileVersion)
+		AddVar("Internal Name", _internalName)
+		AddVar("Legal Copyright",_legalCopyright)
+		AddVar("Original Filename",_originalFilename)
+		AddVar("Product Name",_productName)
+		AddVar("Product Version",_productVersion)
+		
 		#Endif
 	End
 	
@@ -119,6 +169,38 @@ Class BuildProduct
 		Return ""
 	End
 	
+	Method OnGetCompanyName:String() Virtual
+		Return ""
+	End
+	
+	Method OnGetFileDescription:String() Virtual
+		Return ""
+	End
+	
+	Method OnGetFileVersion:String() Virtual
+		Return ""
+	End
+	
+	Method OnGetInternalName:String() Virtual
+		Return ""
+	End
+	
+	Method OnGetLegalCopyright:String() Virtual
+		Return ""
+	End
+	
+	Method OnGetOriginalFilename:String() Virtual
+		Return ""
+	End
+	
+	Method OnGetProductName:String() Virtual
+		Return ""
+	End
+
+	Method OnGetProductVersion:String() Virtual
+		Return ""
+	End
+		
 	Method AddExts( exts:String[] )
 	
 		For Local ext:=Eachin exts
@@ -209,6 +291,14 @@ Class BuildProduct
 	Field _pvars:=New Stack<ProductVar>
 	Field _cmdLine:String
 	Field _iconFile:String
+	Field _companyName:String
+	Field _fileDescription:String
+	Field _fileVersion:String
+	Field _internalName:String
+	Field _legalCopyright:String
+	Field _originalFilename:String
+	Field _productName:String
+	Field _productVersion:String
 	
 	Method EditVars:Bool()
 	
@@ -387,6 +477,55 @@ Class WindowsProduct Extends DesktopProduct
 		Local iconFile:=GetVar("ICON_FILE")
 		Return iconFile
 	End
+	
+	Method OnGetCompanyName:String() Override
+		
+		Local companyName:=GetVar("COMPANY_NAME")
+		Return companyName
+	End
+	
+	Method OnGetFileDescription:String() Override
+		
+		Local fileDescription:=GetVar("FILE_DESCRIPTION")
+		Return fileDescription
+	End
+	
+	Method OnGetFileVersion:String() Override
+		
+		Local fileVersion:=GetVar("FILE_VERSION")
+		Return fileVersion
+	End
+	
+	Method OnGetInternalName:String() Override
+		
+		Local internalName:=GetVar("INTERNAL_NAME")
+		Return internalName
+	End
+	
+	Method OnGetLegalCopyright:String() Override
+		
+		Local legalCopyright:=GetVar("LEGAL_COPYRIGHT")
+		Return legalCopyright
+	End
+	
+	Method OnGetOriginalFilename:String() Override
+		
+		Local originalFilename:=GetVar("ORIGINAL_FILENAME")
+		Return originalFilename
+	End
+	
+	Method OnGetProductName:String() Override
+		
+		Local productName:=GetVar("PRODUCT_NAME")
+		Return productName
+	End
+	
+	Method OnGetProductVersion:String() Override
+	
+		Local productName:=GetVar("PRODUCT_VERSION")
+		Return productName
+	End
+
 End
 
 Class MacosProduct Extends DesktopProduct
