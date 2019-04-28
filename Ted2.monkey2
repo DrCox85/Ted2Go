@@ -13,7 +13,7 @@
 #Import "logo/resource_x64.o"
 #Endif
 
-'#Endif
+#Endif
 
 '----------------------------
 
