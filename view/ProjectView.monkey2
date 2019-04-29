@@ -7,6 +7,7 @@ Class ProjectView Extends DockingView
 	Field openProjectFolder:Action
 	Field openProjectFile:Action
 	Field setMainFile:Action
+	Field undockView:Action
 	
 	Field ProjectOpened:Void( path:String )
 	Field ProjectClosed:Void( path:String )
@@ -43,6 +44,12 @@ Class ProjectView Extends DockingView
 			If doc Then SetMainFile( doc.Path )
 		End
 		
+		undockView=New Action( "Undock View" )
+		undockView.Triggered=Lambda()
+			
+			Local doc:=_docs.CurrentCodeDocument
+			If doc Then UndockWindow.NewUndockDocument(doc)
+		End
 		InitProjBrowser()
 		
 '		_docs.LockedDocumentChanged+=Lambda:Void()

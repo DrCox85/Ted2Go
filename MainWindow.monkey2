@@ -308,6 +308,7 @@ Class MainWindowInstance Extends Window
 		_tabMenu.AddSeparator()
 		_tabMenu.AddAction( _buildActions.lockBuildFile )
 		_tabMenu.AddAction( _projectView.setMainFile )
+		_tabMenu.AddAction( _projectView.undockView)
 		_tabMenu.AddSeparator()
 		_tabMenu.AddAction( GetShowInExplorerTitle() ).Triggered=Lambda()
 			
@@ -1676,7 +1677,7 @@ Class MainWindowInstance Extends Window
 			Local jj:=New JsonObject
 			jobj["undockTabs"]=jj
 			For Local i:=Eachin UndockWindow._undockWindows
-				If i._visible jj[i.Title]=ToJson( i.Frame )
+				If i._visible And i._type="dock" jj[i.Title]=ToJson( i.Frame )
 			Next
 		End
 	End
