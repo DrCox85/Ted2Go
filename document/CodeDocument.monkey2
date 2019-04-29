@@ -437,9 +437,9 @@ Class CodeDocumentView Extends Ted2CodeTextView
 					Endif
 			
 				#Endif
-			
+				
 				Case Key.Home 'smart Home behaviour
-			
+				
 					ProcessHomeKey( ctrl,shift )
 					Return
 				
