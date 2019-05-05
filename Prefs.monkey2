@@ -40,7 +40,7 @@ Class PrefsInstance
 	Field EditorTabSize:=4
 	Field EditorRemoveLinesTrailing:=False
 	Field EditorLineSpacing:=1.0
-	Field EditorFullscreenSize:=70
+	Field EditorFullscreenSize:=70.0
 	'
 	Field SourceSortByType:=True
 	Field SourceShowInherited:=False

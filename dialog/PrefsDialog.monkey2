@@ -194,7 +194,7 @@ Class PrefsDialog Extends DialogExt
 		_mainPlaceDocsAtBegin=New CheckButton( "Place opened document to the left side" )
 		_mainPlaceDocsAtBegin.Checked=Prefs.MainPlaceDocsAtBegin
 		
-		_mainUseOpenGlEsProfile=New CheckButton( "Use opengl 'es' mode; uncheck to use full onengl (restart required)" )
+		_mainUseOpenGlEsProfile=New CheckButton( "Use opengl 'es' mode; uncheck to use full opengl (restart required)" )
 		_mainUseOpenGlEsProfile.Checked=(Prefs.OpenGlProfile="es")
 		
 		_monkeyRootPath=New TextFieldExt( Prefs.MonkeyRootPath )
@@ -315,6 +315,7 @@ Class PrefsDialog Extends DialogExt
 		_editorFullscreenSize.Value=Prefs.EditorFullscreenSize
 		_editorFullscreenSize.ValueChanged+=Lambda( value:Int )
 			_editorFullscreenSizeLabel.Text=_editorFullscreenSize.Value+"%"
+			Prefs.EditorFullscreenSize=_editorFullscreenSize.Value
 		End
 				
 		Local path:=Prefs.EditorFontPath
