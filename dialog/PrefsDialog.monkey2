@@ -87,8 +87,8 @@ Class PrefsDialog Extends DialogExt
 	Field _editorTabSize:TextFieldExt
 	Field _editorRemoveLinesTrailing:CheckButton
 	Field _editorLineSpacing:TextFieldExt
-	Field _editorFullscreenSize:TextFieldExt
-	
+	Field _editorFullscreenSize:ScrollBar
+	Field _editorFullscreenSizeLabel:Label
 	Field _mainToolBarVisible:CheckButton
 	Field _mainToolBarSide:CheckButton
 	Field _mainToolBarSimple:CheckButton
@@ -148,8 +148,8 @@ Class PrefsDialog Extends DialogExt
 		Prefs.EditorTabSize=Clamp( Int(size),1,16 )
 		Prefs.EditorRemoveLinesTrailing=_editorRemoveLinesTrailing.Checked
 		Prefs.EditorLineSpacing=Clamp( Float(_editorLineSpacing.Text.Trim()),0.5,2.5 )
-		Prefs.EditorFullscreenSize=Clamp( Float(_editorFullscreenSize.Text.Trim()),0.7,1.0 )
-		
+
+		Prefs.EditorFullscreenSize=_editorFullscreenSize.Value
 		Prefs.MainToolBarVisible=_mainToolBarVisible.Checked
 		Prefs.MainToolBarSide=_mainToolBarSide.Checked
 		Prefs.MainToolBarSimple=_mainToolBarSimple.Checked
@@ -307,8 +307,16 @@ Class PrefsDialog Extends DialogExt
 		
 		_editorLineSpacing=New TextFieldExt( ""+Prefs.EditorLineSpacing )
 		
-		_editorFullscreenSize=New TextFieldExt( ""+Prefs.EditorFullscreenSize )
-		
+		_editorFullscreenSize=New ScrollBar
+		_editorFullscreenSize.MinSize=New Vec2i( 64,0 )
+		_editorFullscreenSize.Minimum=70
+		_editorFullscreenSize.Maximum=100
+		_editorFullscreenSize.PageSize=10
+		_editorFullscreenSize.Value=Prefs.EditorFullscreenSize
+		_editorFullscreenSize.ValueChanged+=Lambda( value:Int )
+			_editorFullscreenSizeLabel.Text=_editorFullscreenSize.Value+"%"
+		End
+				
 		Local path:=Prefs.EditorFontPath
 		If Not path Then path=_defaultFont
 		_editorFontPath=New TextFieldExt( "" )
@@ -362,11 +370,13 @@ Class PrefsDialog Extends DialogExt
 		lineSpacing.AddView( _editorLineSpacing,"left" )
 		lineSpacing.AddView( New Label( "  0.5...2.5" ),"left" )
 		
+		
 		Local fulls:=New DockingView
-		fulls.AddView( New Label( "Editor Fullscreen Size:" ),"left" )
 		_editorFullscreenSize.MaxSize=New Vec2i( 100,100 )
+		_editorFullscreenSizeLabel=New Label( _editorFullscreenSize.Value+"%" )	
+		fulls.AddView( New Label( "Editor Fullscreen Size:" ),"left" )
 		fulls.AddView( _editorFullscreenSize,"left" )
-		fulls.AddView( New Label( "  0.2...1.0" ),"left" )
+		fulls.AddView( _editorFullscreenSizeLabel,"left" )
 		
 		Local docker:=New DockingView
 		docker.AddView( New Label( " " ),"top" )

@@ -885,7 +885,7 @@ Class MainWindowInstance Extends Window
 			Local view:=_docsManager.CurrentView
 			view.Layout="fill-y"
 			view.Gravity=New Vec2f( .5,0 )
-			Local sz:=New Vec2i( Int(App.DesktopSize.x*Prefs.EditorFullscreenSize),100000 )
+			Local sz:=New Vec2i( Int(App.DesktopSize.x*(Prefs.EditorFullscreenSize/100)),100000 )
 			view.MaxSize=sz
 			view.MinSize=sz
 			_fullscreenHelper.editorContainer.ContentView=view
