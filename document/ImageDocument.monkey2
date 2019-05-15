@@ -8,12 +8,11 @@ Class ImageDocumentView Extends View
 		_doc=doc
 		
 		Layout="fill"
-		
+
 		_label=New Label( " " )
 		_label.Style=App.Theme.GetStyle( "PushButton" )
 		_label.Layout="float"
 		_label.Gravity=New Vec2f( .5,1 )
-		
 		_doc.ImageChanged=Lambda()
 		
 			If Not _doc.Image 
@@ -54,36 +53,68 @@ Class ImageDocumentView Extends View
 		
 		If Not _doc.Image Return
 		
+		canvas.TextureFilteringEnabled=True
+		
 		canvas.Color=Color.White
 		
 		canvas.Translate( Width/2,Height/2 )
 		
 		canvas.Scale( _zoom,_zoom )
-	
-		canvas.DrawImage( _doc.Image,0,0 )
+		
+		canvas.DrawImage( _doc.Image,_pos.x/_zoom,_pos.y/_zoom )	
 	End
 	
 	Method OnMouseEvent( event:MouseEvent ) Override
 	
 		Select event.Type
-		Case EventType.MouseWheel
-			If event.Wheel.Y>0
-				_zoom*=2
-			Else If event.Wheel.Y<0
-				_zoom/=2
-			Endif
-			App.RequestRender()
+			Case EventType.MouseWheel
+				If event.Wheel.Y>0
+					_zoom*=2
+					_pos.x*=2
+					_pos.y*=2
+				Else If event.Wheel.Y<0
+					_zoom/=2
+					_pos.x/=2
+					_pos.y/=2
+				Endif
+				App.RequestRender()
+			Case EventType.MouseDown
+				If( _drag=False And event.Button=MouseButton.Left )
+					_drag=True
+					_uimouse.x=Mouse.Location.x-_pos.x
+					_uimouse.y=Mouse.Location.y-_pos.y
+				End
+				If( event.Button=MouseButton.Right )Then 
+					_zoom=1
+					_pos.x=0
+					_pos.y=0
+					App.RequestRender()
+				End
+			Case EventType.MouseUp
+				_drag=False
+			Case EventType.MouseMove
+				If( _drag )
+					_pos.x=Mouse.Location.x-_uimouse.x
+					_pos.y=Mouse.Location.y-_uimouse.y
+					App.RequestRender()
+				End	
 		End
-	
 	End
 	
 	Private
-
+	
 	Field _zoom:Float=1
 		
 	Field _doc:ImageDocument
 	
 	Field _label:Label
+	
+	Field _pos:Vec2f
+		
+	Field _drag:Bool
+	
+	Field _uimouse:Vec2i
+	
 End
 
 Class ImageDocument Extends Ted2Document
@@ -91,6 +122,7 @@ Class ImageDocument Extends Ted2Document
 	Field ImageChanged:Void()
 
 	Method New( path:String )
+		
 		Super.New( path )
 		
 		_view=New ImageDocumentView( Self )
