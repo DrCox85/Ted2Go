@@ -14,7 +14,7 @@ Class UndockWindow Extends Window
 	Global _undockWindows:=New Stack<UndockWindow>
 	
 	Method New()
-	
+		
 		Super.New( "Undock Window", MainWindow.Width/2, MainWindow.Height/2, WindowFlags.Resizable | WindowFlags.HighDPI | WindowFlags.Center )
 		Self.UpdateWindow( True )
 		_undockWindows.Push( Self )
@@ -113,12 +113,10 @@ Class UndockWindow Extends Window
 	End
 	
 	Function RestoreUndock()
-		
+	
 		For Local i:=Eachin _undockWindows
 			i.CloseWindow()
-			_undockWindows.RemoveEach( i )
 		Next
-		If _undockWindows.Length Then RestoreUndock()
 	End
 	
 End
