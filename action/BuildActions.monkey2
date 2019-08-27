@@ -353,7 +353,7 @@ Class BuildActions Implements IModuleBuilder
 	End
 	
 	Property FilePathToBuildWithPrompt:String()
-	
+		
 		Return PathsProvider.GetActiveMainFilePath( True,True )
 	End
 	
@@ -623,6 +623,9 @@ Class BuildActions Implements IModuleBuilder
 		
 		Local buildDocPath:=FilePathToBuildWithPrompt
 		If Not buildDocPath Return False
+		
+		Local mainFilePath:=PathsProvider.GetMainFileOfDocument(buildDocPath)
+		If mainFilePath Then buildDocPath=mainFilePath
 		
 		Local product:=BuildProduct.GetBuildProduct( buildDocPath,target,False )
 		If Not product Return False
