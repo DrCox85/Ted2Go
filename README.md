@@ -1,3 +1,5 @@
+ `Ted2GoEx is forked from the original Ted2Go with extra features. You need monkey2Ex to compile. [monkey2Ex](https://github.com/DrCox85/monkey2Ex)`
+
 # Ted2Go
 An IDE for Monkey2 programming language.
 
