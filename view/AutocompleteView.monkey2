@@ -570,7 +570,7 @@ Class AutocompleteDialog Extends NoTitleDialog
 		
 		Select fileType
 			Case ".monkey2"
-				Return "#If ,#Rem,#End,#Endif,#Else,#Else If ,#Import ,#Reflect ,monkeydoc,__TARGET__,__MOBILE_TARGET__,__DESKTOP_TARGET__,__WEB_TARGET__,__HOSTOS__,__ARCH__,__DEBUG__,__RELEASE__,__CONFIG__,__MAKEDOCS__"
+				Return "#If ,#Rem,#End,#Endif,#Else,#Else If ,#Import ,#Incbin ,#Reflect ,monkeydoc,__TARGET__,__MOBILE_TARGET__,__DESKTOP_TARGET__,__WEB_TARGET__,__HOSTOS__,__ARCH__,__DEBUG__,__RELEASE__,__CONFIG__,__MAKEDOCS__"
 			Case ".cpp",".h",".hpp",".c"
 				Return "#if ,#end,#endif,#else,#elif ,#define ,#undef ,#ifdef ,#ifndef "
 		End
