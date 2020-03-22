@@ -431,8 +431,8 @@ Class ModuleManager Extends Dialog
 	
 	Method EnumRemoteModules:Bool()
 	
-		Local src:=MONKEY2_DOMAIN+"/module-manager/?modules=1"
-		
+		'Local src:=MONKEY2_DOMAIN+"/module-manager/?modules=1"
+		Local src:="http://codedan.net/Monkey2/backup/monkeycoder.co.nz/module-manager/?modules=1"
 		Local tmp:="tmp/modules.json"
 	
 		DeleteFile( tmp )
