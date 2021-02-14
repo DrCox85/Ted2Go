@@ -137,7 +137,7 @@ Class BuildProduct
 		AddVar("Command line parameter",_cmdLine )
 		#if __TARGET__="windows"
 		
-		AddVar("Icon File",_iconFile,"file","ico")
+		AddVar("Icon File",_iconFile,"file","Icon File:ico")
 		AddVar("Company Name",_companyName)
 		AddVar("File Description",_fileDescription)
 		AddVar("File Version", _fileVersion)
