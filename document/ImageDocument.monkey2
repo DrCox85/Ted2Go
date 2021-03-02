@@ -8,13 +8,23 @@ Class ImageDocumentView Extends View
 		_doc=doc
 		
 		Layout="fill"
-
+		
+		_checkButton=New CheckButton( "Filtering" )
+		_checkButton.Clicked=Lambda()
+			_drag=False
+			ChangeFiltering( _checkButton.Checked )
+		End
+		
 		_label=New Label( " " )
 		_label.Style=App.Theme.GetStyle( "PushButton" )
 		_label.Layout="float"
 		_label.Gravity=New Vec2f( .5,1 )
-		_doc.ImageChanged=Lambda()
+		_label.AddView( _checkButton )
+		_label.Clicked=Lambda()
+			_drag=False
+		End
 		
+		_doc.ImageChanged=Lambda()
 			If Not _doc.Image 
 				_label.Text=""
 				Return
@@ -29,7 +39,9 @@ Class ImageDocumentView Extends View
 			Case PixelFormat.RGBA32 format="PixelFormat.RGBA32"
 			End
 			
-			_label.Text="Width="+_doc.Image.Width+", Height="+_doc.Image.Height+", BytesPerPixel="+PixelFormatDepth( _doc.Image.Texture.Format )+", format="+format
+			_label.Text="Width="+_doc.Image.Width+", Height="+_doc.Image.Height+", BytesPerPixel="+PixelFormatDepth( _doc.Image.Texture.Format )+", format="+format+
+			"~nPath: "+_doc.ImagePath+
+			"~nLeft Mouse Down move image, Zoom with Mousewheel, Mouse Right Reset"
 		End
 		
 		AddChildView( _label )
@@ -43,7 +55,8 @@ Class ImageDocumentView Extends View
 	End
 	
 	Method OnRender( canvas:Canvas ) Override
-	
+		
+		App.RequestRender()
 		For Local x:=0 Until Width Step 64
 			For Local y:=0 Until Height Step 64
 				canvas.Color=(x~y) & 64 ? New Color( .1,.1,.1 ) Else New Color( .05,.05,.05 )
@@ -53,7 +66,7 @@ Class ImageDocumentView Extends View
 		
 		If Not _doc.Image Return
 		
-		canvas.TextureFilteringEnabled=True
+		canvas.TextureFilteringEnabled=_filterEnable
 		
 		canvas.Color=Color.White
 		
@@ -69,15 +82,14 @@ Class ImageDocumentView Extends View
 		Select event.Type
 			Case EventType.MouseWheel
 				If event.Wheel.Y>0
-					_zoom*=2
-					_pos.x*=2
-					_pos.y*=2
+					_zoom*=1.1
+					_pos.x*=1.1
+					_pos.y*=1.1
 				Else If event.Wheel.Y<0
-					_zoom/=2
-					_pos.x/=2
-					_pos.y/=2
+					_zoom/=1.1
+					_pos.x/=1.1
+					_pos.y/=1.1
 				Endif
-				App.RequestRender()
 			Case EventType.MouseDown
 				If( _drag=False And event.Button=MouseButton.Left )
 					_drag=True
@@ -88,7 +100,6 @@ Class ImageDocumentView Extends View
 					_zoom=1
 					_pos.x=0
 					_pos.y=0
-					App.RequestRender()
 				End
 			Case EventType.MouseUp
 				_drag=False
@@ -96,9 +107,15 @@ Class ImageDocumentView Extends View
 				If( _drag )
 					_pos.x=Mouse.Location.x-_uimouse.x
 					_pos.y=Mouse.Location.y-_uimouse.y
-					App.RequestRender()
 				End	
 		End
+	End
+	
+	Method ChangeFiltering( _filter:Bool )
+		
+		_filterEnable=_filter
+		_doc.Image=Image.Load( _doc.ImagePath )
+		_doc.Image.Handle=New Vec2f( .5,.5 )	
 	End
 	
 	Private
@@ -109,12 +126,17 @@ Class ImageDocumentView Extends View
 	
 	Field _label:Label
 	
+	Field _checkButton:CheckButton
+	
 	Field _pos:Vec2f
 		
 	Field _drag:Bool
 	
 	Field _uimouse:Vec2i
 	
+	Field _filterEnable:Bool
+	
+	Field _filterSwitch:Bool
 End
 
 Class ImageDocument Extends Ted2Document
@@ -131,6 +153,14 @@ Class ImageDocument Extends Ted2Document
 	Property Image:Image()
 	
 		Return _image
+	Setter (value:Image)
+		
+		_image=value
+	End
+	
+	Property ImagePath:String()
+		
+		Return _path
 	End
 	
 	Protected
@@ -139,6 +169,7 @@ Class ImageDocument Extends Ted2Document
 	
 		_image=Image.Load( Path )
 		If Not _image Return False
+		_path=Path
 		
 		_image.Handle=New Vec2f( .5,.5 )
 		
@@ -170,6 +201,8 @@ Class ImageDocument Extends Ted2Document
 	
 	Field _view:ImageDocumentView
 	
+	Field _path:String
+		
 End
 
 Class ImageDocumentType Extends Ted2DocumentType
