@@ -33,6 +33,7 @@ Class UndockWindow Extends Window
 		_window._storeDocument=_doc
 		_doc.Close()
 		_window.ContentView=_window._storeDocument.View
+		_window.Title=_doc.Path
 		_window._visible=True
 		_window.Activated()
 		_window._type="document"
