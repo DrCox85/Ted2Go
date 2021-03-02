@@ -591,7 +591,7 @@ Class BuildActions Implements IModuleBuilder
 			DeleteFile(mingwpath+"resource_x64.o")
 			DeleteFile(mingwpath+"resource.rc")
 			DeleteFile(mingwpath+StripDir(iconFile))
-			If Not FileExists(mainpath+"resource.o")Then _console.Write("No resource_x64 found");Return file
+			If Not FileExists(mainpath+"resource.o")Then _console.Write("No resource found");Return file
 			If Not FileExists(mainpath+"resource_x64.o")Then _console.Write("No resource_x64 found"); Return file
 			'Create new file with Icon Imports
 			Local _readFile:=FileStream.Open(file,"r")
